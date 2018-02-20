@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Variables
+# Load the default and user configurations.
+source $(dirname $0)/default.conf # Default values for all necessary variables.
+source $(dirname $0)/custom.conf # Load after default values to be able to overwrite them.
+
+
+# Variables (load here to make sure they overwrite users configurations if necessary)
 FIFO="/tmp/i3_planetbar" # The fifo used to pass content to the lemonbar.
 
 
@@ -46,5 +51,5 @@ function reading {
 # Start the process chain with writing/reading the fifo and pass it to the powerline.
 writing & # Write content to the buffer in background.
 reading | # Read content from the buffer in background.
-lemonbar -p -g x30 -B "#ffffff" -F "#000000" & # Run lemonbar in background and read standard output from the reading function.
+lemonbar -p -g x30 -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" & # Run lemonbar in background and read standard output from the reading function.
 wait # Wait here and do not end (useful for debugging, else just sent to background on call)
