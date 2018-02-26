@@ -65,20 +65,29 @@ function initSegments {
 #   $7 - Background color of the previous segment (for the separator)
 #
 function updateSegment {
+  # Store the state to be aware of changes in the state.
+  local lastState=""
+
   # Start a endless loop for this process, responsible for this segment.
   while true ; do
     # Get the current state of the segment, by its reposible function.
     local state=$("getState_$2")
 
-    # Get the separator by the orientation.
-    local separator
-    [[ "$4" = 'right' ]] && separator="$SEGMENT_SEPARATOR_RIGHT_OUTER" || separator="$SEGMENT_SEPARATOR_LEFT_OUTER"  
+    # Do nothing further, it the state has not changed.
+    if [[ ! "$lastState" = "$state" ]] ; then
+      # Store state for next update.
+      lastState="$state"
 
-    # Compose the segment format string.
-    local segment_format_string="%{B${7} F${5}}${separator}%{B${5} F${6}} ${state} %{F- B-}"
+      # Get the separator by the orientation.
+      local separator
+      [[ "$4" = 'right' ]] && separator="$SEGMENT_SEPARATOR_RIGHT_OUTER" || separator="$SEGMENT_SEPARATOR_LEFT_OUTER"  
 
-    # Pass the format string to the fifo. 
-    printf "%s\n" "${3}${segment_format_string}" > "${FIFO}"
+      # Compose the segment format string.
+      local segment_format_string="%{B${7} F${5}}${separator}%{B${5} F${6}} ${state} %{F- B-}"
+
+      # Pass the format string to the fifo. 
+      printf "%s\n" "${3}${segment_format_string}" > "${FIFO}" &
+    fi
 
     # Wait for the defined period.
     sleep "$1"
@@ -102,7 +111,7 @@ function reading {
   # Keep open endless loop as long as the process is running.
   while true ; do
     # Wait until fifo has content.
-    if read line < /tmp/i3_planetbar ; then
+    if read line ; then
       # Parse the first character as the index of the segment.
       index=${line:0:1}
 
@@ -112,8 +121,13 @@ function reading {
       # Pass the current format string list to the bar.
       format_string=$(printf %s "${format_string_list[@]}" $'\n')
       echo "%{r}${format_string}"
+      echo "---------------"
     fi
-  done
+
+    # Sleep minimum of time, after which a new update is possible.
+    # In case that the fifo directly contains a new update, it would be ignored by the lemonbar, if no short delay is inserted.
+    sleep 0.03s
+  done < "$FIFO"
 }
 
 
