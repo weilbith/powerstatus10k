@@ -22,6 +22,9 @@ mkfifo "${FIFO}" # Create the fifo.
 # Manage the order of segments and their colors.
 #
 function initSegments {
+  # Get the segment color list length (background is reference)
+  local color_list_length=${#SEGMENT_BACKGROUND_LIST[@]}
+
   # Always remember the background from the last segement, cause it is necessary for the separator.
   # The most left segment of the right site has to predecessor, so use the bars default background.
   local next_segment_background
@@ -31,19 +34,28 @@ function initSegments {
     # Get the next segment name.
     local segmentName="${SEGMENT_LIST_LEFT[i]}"
 
-    # Switch between primary and secundary color based on the index.
-    if [[ $(( $i % 2 )) -eq 0 ]] ; then
-      current_segment_background=$SEGMENT_BACKGROUND_PRIMARY
-      current_segment_foreground=$SEGMENT_FOREGROUND_PRIMARY
-      next_segment_background=$SEGMENT_BACKGROUND_SECUNDARY
+    # Use default segment colors in case no color list is defined.
+    if [[ $color_list_length -eq 0 ]] ; then
+      current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
 
-    else 
-      current_segment_background=$SEGMENT_BACKGROUND_SECUNDARY
-      current_segment_foreground=$SEGMENT_FOREGROUND_SECUNDARY
-      next_segment_background=$SEGMENT_BACKGROUND_PRIMARY
+    # Circle trough the color list based on the list index.
+    else
+      local color_index=$(($i % $color_list_length))
+
+      current_segment_background=${SEGMENT_BACKGROUND_LIST[color_index]}
+      current_segment_foreground=${SEGMENT_FOREGROUND_LIST[color_index]}
+
+      local color_index_next=$(($((i +1)) % $color_list_length))
+      next_segment_background=${SEGMENT_BACKGROUND_LIST[color_index_next]}
+
+      # Use default color if any color is not specified.
+      [[ "$current_segment_background" = '' ]] && current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      [[ "$current_segment_foreground" = '' ]] && current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
+      [[ "$next_segment_background" = '' ]] && next_segment_background=$SEGMENT_BACKGROUND_DEFAULT
     fi
+   
 
-    
     # Reset next segment background for last left segment.
     if [[ "$i" = "$((${#SEGMENT_LIST_LEFT[@]}-1))" ]] ; then
       next_segment_background=$DEFAULT_BACKGROUND
@@ -52,9 +64,6 @@ function initSegments {
 
     # Open a background process, which updates this segment.
     updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "l" "$current_segment_background" "$current_segment_foreground" "$next_segment_background" &
-
-    # Update previous segment background.
-    previous_segment_background=$current_segment_background
   done
 
 
@@ -65,15 +74,24 @@ function initSegments {
     # Get the next segment name.
     local segmentName="${SEGMENT_LIST_RIGHT[i]}"
 
-    # Switch between primary and secundary color based on the index.
-    if [[ $(( $i % 2 )) -eq 0 ]] ; then
-      current_segment_background=$SEGMENT_BACKGROUND_PRIMARY
-      current_segment_foreground=$SEGMENT_FOREGROUND_PRIMARY
-    
-    else 
-      current_segment_background=$SEGMENT_BACKGROUND_SECUNDARY
-      current_segment_foreground=$SEGMENT_FOREGROUND_SECUNDARY
+    # Use default segment colors in case no color list is defined.
+    if [[ $color_list_length -eq 0 ]] ; then
+      current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
+
+    # Circle trough the color list based on the list index.
+    else
+      # Use reverse order of the list to have symmetry with the left elements.
+      local color_index=$(($color_list_length - $(($i % $color_list_length)) -1))
+
+      current_segment_background=${SEGMENT_BACKGROUND_LIST[color_index]}
+      current_segment_foreground=${SEGMENT_FOREGROUND_LIST[color_index]}
+
+      # Use default color if any color is not specified.
+      [[ "$current_segment_background" = '' ]] && current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      [[ "$current_segment_foreground" = '' ]] && current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
     fi
+
 
     # Open a background process, which updates this segment.
     updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "r" "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" &
