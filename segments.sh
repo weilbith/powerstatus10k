@@ -5,7 +5,7 @@ function getState_first {
 }
 
 function getState_second {
-  echo "Bus Cocusnuss"
+  echo "Bus"
 }
 
 function getState_third {
