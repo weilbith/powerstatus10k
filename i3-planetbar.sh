@@ -25,6 +25,9 @@ function initSegments {
   # Get the segment color list length (background is reference)
   local color_list_length=${#SEGMENT_BACKGROUND_LIST[@]}
 
+
+  # -------- Left Segments Begin ----------
+
   # Always remember the background from the last segement, cause it is necessary for the separator.
   # The most left segment of the right site has to predecessor, so use the bars default background.
   local next_segment_background
@@ -66,8 +69,26 @@ function initSegments {
     updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "l" "$current_segment_background" "$current_segment_foreground" "$next_segment_background" &
   done
 
+  # -------- Left Segments Done ----------
+  
+  for (( i=0; i<${#SEGMENT_LIST_CENTER[@]}; i++ )) ; do
+    # Get the next segment name.
+    local segmentName="${SEGMENT_LIST_CENTER[i]}"
+    
+    # Open a background process, which updates this segment.
+    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "c" "#ff0000" "#ffffff" "#000000" &
+  done
 
-  # Initialize the right segments.
+  # ------- Center Segments Begin ----------
+  
+
+
+  # ------- Center Segments Done ----------
+
+
+  # ------- Right Segments Begin ----------
+
+  # The most left right segment has no left segment, so it use the default background color for the separator.
   previous_segment_background=$DEFAULT_BACKGROUND
 
   for (( i=0; i<${#SEGMENT_LIST_RIGHT[@]}; i++ )) ; do
@@ -99,6 +120,9 @@ function initSegments {
     # Update previous segment background.
     previous_segment_background=$current_segment_background
   done
+
+  # ------- Right Segments Done ----------
+
 }
 
 
@@ -111,7 +135,7 @@ function initSegments {
 #   $1 - The interval in which the segment should be updated
 #   $2 - Name of the segment (used as reference)
 #   $3 - Index in the sement order
-#   $4 - Orientiation [l,r]
+#   $4 - Orientiation [l|r|c]
 #   $5 - Background color of this segment
 #   $6 - Foreground color of this segment
 #   $7 - Background color of the next/previous segment (for the separator)(depending on orientation)
@@ -120,7 +144,9 @@ function updateSegment {
   # Define persistent properties.
   # Get the separator by the orientation.
   local separator_char
-  [[ "$4" = 'l' ]] && separator_char="$SEGMENT_SEPARATOR_LEFT_OUTER" || separator_char="$SEGMENT_SEPARATOR_RIGHT_OUTER"  
+  [[ "$4" = 'l' ]] && separator_char="$SEGMENT_SEPARATOR_LEFT_OUTER"
+  [[ "$4" = 'c' ]] && separator_char="$SEGMENT_SEPARATOR_CENTER_INNER"  
+  [[ "$4" = 'r' ]] && separator_char="$SEGMENT_SEPARATOR_RIGHT_OUTER"  
 
   local separator_format_string="%{B${7} F${5}}${separator_char}"
   local state_color_before="%{B${5} F${6}}"
@@ -141,12 +167,11 @@ function updateSegment {
       lastState="$state"
 
       # Compose the segment format string depending on the orientation.
-      if [[ "$4" = 'l' ]] ; then
-        segment_format_string="${state_color_before} ${state} ${separator_format_string}${color_clear}"
+      [[ "$4" = 'l' ]] && segment_format_string="${state_color_before} ${state} ${separator_format_string}${color_clear}"
+
+      [[ "$4" = 'c' ]] && segment_format_string="${state_color_before} ${state} ${color_clear}"
       
-      else 
-        segment_format_string="${separator_format_string}${state_color_before} ${state} ${color_clear}"
-      fi
+      [[ "$4" = 'r' ]] && segment_format_string="${separator_format_string}${state_color_before} ${state} ${color_clear}"
 
       # Pass the format string to the fifo. 
       printf "%s\n" "${4}${3}${segment_format_string}" > "${FIFO}" &
@@ -164,7 +189,8 @@ function updateSegment {
 # Pass the concatenation of all segments format strings to the standard output.
 #
 function reading {
-  # Arrays which holds the current format string for the left and right segments.
+  # Arrays which holds the current format string for each orientation segments.
+  declare -A format_string_list_left=()
   declare -A format_string_list_left=()
   declare -A format_string_list_right=()
 
@@ -172,6 +198,7 @@ function reading {
   local orientation # Decide in which list the segment belong to.
   local index # Temporally store the index of the to update segement.
   local format_string_left # Hold the concatenation of all left segments.
+  local format_string_center # Hold the concatenation of all center segments.
   local format_string_right # Hold the concatenation of all right segments.
   local format_string # Hold the concatenation of all format strings.
 
@@ -184,17 +211,15 @@ function reading {
       index=${line:1:1}
 
       # Update the format string in the reponsive list.
-      if [[ "$orientation" = 'l' ]] ; then
-        format_string_list_left[$index]="${line:2}"
-
-      else 
-        format_string_list_right[$index]="${line:2}"
-      fi
+      [[ "$orientation" = 'l' ]] && format_string_list_left[$index]="${line:2}"
+      [[ "$orientation" = 'c' ]] && format_string_list_center[$index]="${line:2}"
+      [[ "$orientation" = 'c' ]] && format_string_list_right[$index]="${line:2}"
 
       # Pass the current format string list to the bar.
       format_string_left=$(printf %s "${format_string_list_left[@]}" $'\n')
+      format_string_center=$(printf %s "${format_string_list_center[@]}" $'\n')
       format_string_right=$(printf %s "${format_string_list_right[@]}" $'\n')
-      format_string="%{l}${format_string_left}%{r}${format_string_right}"
+      format_string="%{l}${format_string_left}%{c}${format_string_center}%{r}${format_string_right}"
       echo ${format_string}
     fi
 
