@@ -41,6 +41,7 @@ function initSegments {
     if [[ $color_list_length -eq 0 ]] ; then
       current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
       current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
+      next_segment_background=$SEGMENT_BACKGROUND_DEFAULY
 
     # Circle trough the color list based on the list index.
     else
@@ -66,22 +67,56 @@ function initSegments {
 
 
     # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "l" "$current_segment_background" "$current_segment_foreground" "$next_segment_background" &
+    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "l" "$current_segment_background" "$current_segment_foreground" "" "$next_segment_background" &
   done
 
   # -------- Left Segments Done ----------
-  
-  for (( i=0; i<${#SEGMENT_LIST_CENTER[@]}; i++ )) ; do
-    # Get the next segment name.
-    local segmentName="${SEGMENT_LIST_CENTER[i]}"
-    
-    # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "c" "#ff0000" "#ffffff" "#000000" &
-  done
+
 
   # ------- Center Segments Begin ----------
   
+  local previous_segment_background=$DEFAULT_BACKGROUND
+  local next_segment_background
 
+  for (( i=0; i<${#SEGMENT_LIST_CENTER[@]}; i++ )) ; do
+    # Get the next segment name.
+    local segmentName="${SEGMENT_LIST_CENTER[i]}"
+   
+    # Use default segment colors in case no color list is defined.
+    if [[ $color_list_length -eq 0 ]] ; then
+      current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
+      next_segment_background=$SEGMENT_BACKGROUND_DEFAULY
+
+    # Circle trough the color list based on the list index.
+    else
+      local color_index=$(($i % $color_list_length))
+
+      current_segment_background=${SEGMENT_BACKGROUND_LIST[color_index]}
+      current_segment_foreground=${SEGMENT_FOREGROUND_LIST[color_index]}
+
+      local color_index_next=$(($((i +1)) % $color_list_length))
+      next_segment_background=${SEGMENT_BACKGROUND_LIST[color_index_next]}
+
+      # Use default color if any color is not specified.
+      [[ "$current_segment_background" = '' ]] && current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+      [[ "$current_segment_foreground" = '' ]] && current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
+      [[ "$next_segment_background" = '' ]] && next_segment_background=$SEGMENT_BACKGROUND_DEFAULT
+    fi
+   
+
+    # Reset next segment background for last left segment.
+    if [[ "$i" = "$((${#SEGMENT_LIST_LEFT[@]}-1))" ]] ; then
+      next_segment_background=$DEFAULT_BACKGROUND
+    fi
+
+
+    # Open a background process, which updates this segment.
+    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "c" ${current_segment_background} ${current_segment_foreground} ${previous_segment_background} ${next_segment_background} &
+
+    # Update previous segment background.
+    previous_segment_background=$current_segment_background
+  done
 
   # ------- Center Segments Done ----------
 
@@ -115,7 +150,7 @@ function initSegments {
 
 
     # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "r" "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" &
+    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "r" "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "" &
 
     # Update previous segment background.
     previous_segment_background=$current_segment_background
@@ -138,17 +173,58 @@ function initSegments {
 #   $4 - Orientiation [l|r|c]
 #   $5 - Background color of this segment
 #   $6 - Foreground color of this segment
-#   $7 - Background color of the next/previous segment (for the separator)(depending on orientation)
+#   $7 - Background color of the previous segment (for the separator)
+#   $8 - Background color of the next segment (for the separator)
 #
+
 function updateSegment {
   # Define persistent properties.
-  # Get the separator by the orientation.
-  local separator_char
-  [[ "$4" = 'l' ]] && separator_char="$SEGMENT_SEPARATOR_LEFT_OUTER"
-  [[ "$4" = 'c' ]] && separator_char="$SEGMENT_SEPARATOR_CENTER_INNER"  
-  [[ "$4" = 'r' ]] && separator_char="$SEGMENT_SEPARATOR_RIGHT_OUTER"  
+  # Left separator.
+  local left_separator_format_string=""
 
-  local separator_format_string="%{B${7} F${5}}${separator_char}"
+  # For center segments.
+  if [[ "$4" = 'c' ]] ; then
+    # In case it is the most left center segment.
+    if [[ ${3} -eq 0 ]] ; then
+      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}"
+
+    # For all center segments after.
+    else
+      left_separator_format_string="%{B${5} F${7}}${SEGMENT_SEPARATOR_CENTER_INNER}"
+    fi
+
+  # For right segments.
+  elif [[ "$4" = 'r' ]] ; then
+    # In case it is the most left right segment.
+    if [[ ${3} -eq 0 ]] ; then
+      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_RIGHT_OUTER}"
+
+    # For all right segments after.
+    else 
+      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_RIGHT_INNER}"
+    fi
+  fi
+
+  # Right separator
+  local right_separator_format_string=""
+
+  if [[ "$4" = 'l' ]] ; then
+    # In case it is the most right left segment.
+    if [[ ${3} -eq $((${#SEGMENT_LIST_LEFT[@]}-1)) ]] ; then
+      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_LEFT_OUTER}"
+
+    # For all left segments before.
+    else
+      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_LEFT_INNER}"
+    fi
+
+  elif [[ "$4" = 'c' ]] ; then
+    # In case it is the most right center segment.
+    if [[ ${3} -eq $((${#SEGMENT_LIST_CENTER[@]}-1)) ]] ; then
+      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}"
+    fi
+  fi
+
   local state_color_before="%{B${5} F${6}}"
   local color_clear="%{F- B-}"
   local segment_format_string=
@@ -166,12 +242,8 @@ function updateSegment {
       # Store state for next update.
       lastState="$state"
 
-      # Compose the segment format string depending on the orientation.
-      [[ "$4" = 'l' ]] && segment_format_string="${state_color_before} ${state} ${separator_format_string}${color_clear}"
-
-      [[ "$4" = 'c' ]] && segment_format_string="${state_color_before} ${state} ${color_clear}"
-      
-      [[ "$4" = 'r' ]] && segment_format_string="${separator_format_string}${state_color_before} ${state} ${color_clear}"
+      # Compose the segment format string.
+      segment_format_string="${left_separator_format_string}${state_color_before} ${state} ${right_separator_format_string} ${color_clear}"
 
       # Pass the format string to the fifo. 
       printf "%s\n" "${4}${3}${segment_format_string}" > "${FIFO}" &
@@ -181,7 +253,6 @@ function updateSegment {
     sleep "$1"
   done
 }
-
 
 # Function which run in background and read from the fifo.
 # Hold an array where each entry is the format string of one segment.
@@ -213,13 +284,13 @@ function reading {
       # Update the format string in the reponsive list.
       [[ "$orientation" = 'l' ]] && format_string_list_left[$index]="${line:2}"
       [[ "$orientation" = 'c' ]] && format_string_list_center[$index]="${line:2}"
-      [[ "$orientation" = 'c' ]] && format_string_list_right[$index]="${line:2}"
+      [[ "$orientation" = 'r' ]] && format_string_list_right[$index]="${line:2}"
 
       # Pass the current format string list to the bar.
       format_string_left=$(printf %s "${format_string_list_left[@]}" $'\n')
       format_string_center=$(printf %s "${format_string_list_center[@]}" $'\n')
       format_string_right=$(printf %s "${format_string_list_right[@]}" $'\n')
-      format_string="%{l}${format_string_left}%{c}${format_string_center}%{r}${format_string_right}"
+        format_string="%{l}${format_string_left}%{c}${format_string_center}%{r}${format_string_right}"
       echo ${format_string}
     fi
 
