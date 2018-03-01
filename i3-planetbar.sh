@@ -88,9 +88,22 @@ function initSegments {
       current_segment_foreground=$SEGMENT_FOREGROUND_DEFAULT
       next_segment_background=$SEGMENT_BACKGROUND_DEFAULY
 
-    # Circle trough the color list based on the list index.
+    # Circle trough the color list based on the list index from the center segment to the outer ones.
     else
-      local color_index=$(($i % $color_list_length))
+      local middleIndex=$((${#SEGMENT_LIST_CENTER[@]} / 2)) # Is rounded down for odd number of segments.
+
+      # Even number of center segments.
+      if [[ $((${#SEGMENT_LIST_CENTER[@]} % 2)) -eq 0 ]] ; then
+        # Differ between segments before the "middle" and after, so the both middle segments get the same color and afterwards the color list is iterated.
+        [[ $i -lt $middleIndex ]] && local distance=$(($middleIndex - $i - 1))
+        [[ $i -ge $middleIndex ]] && local distance=$(($middleIndex - $i))
+
+      # Odd number of center segments.
+      else 
+        local distance=$(($middleIndex - $i)) # The distance of the segment index to the middle segment.
+      fi
+
+      local color_index=${distance##*-} # Convert to a positive number.
 
       current_segment_background=${SEGMENT_BACKGROUND_LIST[color_index]}
       current_segment_foreground=${SEGMENT_FOREGROUND_LIST[color_index]}
@@ -106,9 +119,8 @@ function initSegments {
    
 
     # Reset next segment background for last left segment.
-    if [[ "$i" = "$((${#SEGMENT_LIST_LEFT[@]}-1))" ]] ; then
-      next_segment_background=$DEFAULT_BACKGROUND
-    fi
+    [[ "$i" = "$((${#SEGMENT_LIST_CENTER[@]} -1))" ]] && next_segment_background=$DEFAULT_BACKGROUND
+
 
 
     # Open a background process, which updates this segment.
