@@ -109,7 +109,7 @@ function initSegments {
       current_segment_foreground=${SEGMENT_FOREGROUND_LIST[color_index]}
 
       local color_index_next=$(($((i +1)) % $color_list_length))
-      next_segment_background=${SEGMENT_BACKGROUND_LIST[color_index_next]}
+      next_segment_background=${SEGMENT_BACKGROUND_LIST[$(($color_index + 1))]}
 
       # Use default color if any color is not specified.
       [[ "$current_segment_background" = '' ]] && current_segment_background=$SEGMENT_BACKGROUND_DEFAULT
@@ -191,18 +191,27 @@ function initSegments {
 
 function updateSegment {
   # Define persistent properties.
+  
+  # Center segments are devided into left, center and right segments, which defines the separtor.
+  # In case of two middle segment by a even number of center segments, between both are no separator. 
+  local centerMiddleIndex=$((${#SEGMENT_LIST_CENTER[@]} / 2)) # Is rounded down for odd number of segments.
+  local centerDistance=$(($centerMiddleIndex - $i)) # The distance of the segment index to the middle segment.
+
+
   # Left separator.
   local left_separator_format_string=""
 
   # For center segments.
   if [[ "$4" = 'c' ]] ; then
-    # In case it is the most left center segment.
-    if [[ ${3} -eq 0 ]] ; then
-      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}"
+    # The left center segments
+    if [[ ${centerDistance} -ge 0 ]] ; then
+      # In case it is the most left center segment
+      if [[ ${3} -eq 0 ]] ; then
+        left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}"
 
-    # For all center segments after.
-    else
-      left_separator_format_string="%{B${5} F${7}}${SEGMENT_SEPARATOR_CENTER_INNER}"
+      else 
+        left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_INNER_LEFT}"
+      fi
     fi
 
   # For right segments.
@@ -216,13 +225,16 @@ function updateSegment {
       left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_RIGHT_INNER}"
     fi
   fi
+  
+  # -----
+
 
   # Right separator
   local right_separator_format_string=""
 
   if [[ "$4" = 'l' ]] ; then
     # In case it is the most right left segment.
-    if [[ ${3} -eq $((${#SEGMENT_LIST_LEFT[@]}-1)) ]] ; then
+    if [[ ${3} -eq $((${#SEGMENT_LIST_LEFT[@]} - 1)) ]] ; then
       right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_LEFT_OUTER}"
 
     # For all left segments before.
@@ -231,11 +243,18 @@ function updateSegment {
     fi
 
   elif [[ "$4" = 'c' ]] ; then
-    # In case it is the most right center segment.
-    if [[ ${3} -eq $((${#SEGMENT_LIST_CENTER[@]}-1)) ]] ; then
-      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}"
+    # The right center segments
+    if [[ ${centerDistance} -le 0 ]] ; then
+      # In case it is the most right center segment
+      if [[ ${3} -eq $((${#SEGMENT_LIST_CENTER[@]} - 1)) ]] ; then
+        right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}"
+
+      else 
+        right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_INNER_RIGHT}"
+      fi
     fi
   fi
+
 
   local state_color_before="%{B${5} F${6}}"
   local color_clear="%{F- B-}"
@@ -255,7 +274,7 @@ function updateSegment {
       lastState="$state"
 
       # Compose the segment format string.
-      segment_format_string="${left_separator_format_string}${state_color_before} ${state} ${right_separator_format_string} ${color_clear}"
+      segment_format_string="${left_separator_format_string}${state_color_before} ${state} ${right_separator_format_string}${color_clear}"
 
       # Pass the format string to the fifo. 
       printf "%s\n" "${4}${3}${segment_format_string}" > "${FIFO}" &
