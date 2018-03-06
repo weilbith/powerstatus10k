@@ -61,7 +61,10 @@ function initSegments {
     # Get the next segment name.
     local segmentName="${SEGMENT_LIST_RIGHT[i]}"
 
-    # Get the back- and foreground colors for this segments. local current_segment_background=$(getSegmentBackground 'r' $i) local current_segment_foreground=$(getSegmentForeground 'r' $i) local previous_segment_background=$(getSegmentBackground 'r' $(($i - 1)))
+    # Get the back- and foreground colors for this segments.
+    local current_segment_background=$(getSegmentBackground 'r' $i)
+    local current_segment_foreground=$(getSegmentForeground 'r' $i)
+    local previous_segment_background=$(getSegmentBackground 'r' $(($i - 1)))
 
     # Open a background process, which updates this segment.
     updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "r" "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "" &
