@@ -44,11 +44,29 @@ function getSegmentForeground () {
 #    $3 - back- or foreground [bg|fg]
 #
 function getSegmentColor () {
+  # Expand the orientation to the variable substring definition.
+  [[ "$1" = 'l' ]] && local orientation="LEFT"
+  [[ "$1" = 'c' ]] && local orientation="CENTER"
+  [[ "$1" = 'r' ]] && local orientation="RIGHT"
+  
+  # Expand the color class to the variable substring definition.
   [[ "$3" = 'bg' ]] && local type="BACKGROUND" || local type="FOREGROUND"
 
-  color_list_length=${#SEGMENT_BACKGROUND_LIST[@]}
 
-  if [[ ! $color_list_length -eq 0 ]] ; then
+  # Get static values, relevant for the color definition.
+  eval "local segment_name=\${SEGMENT_LIST_${orientation}[${2}]^^}" # Remark the upper case in the end.
+  local color_list_length=${#SEGMENT_BACKGROUND_LIST[@]} # Background list is used as indicator.
+
+  # Try to get a costumized color for segment.
+  eval "local custom_segment_color=\$SEGMENT_${segment_name}_${type}"
+
+
+  # Use a custom color for this specific segment, if definied so.
+  if [[ -n "$custom_segment_color" ]] ; then
+    echo $custom_segment_color 
+
+  # Use the color list schema definition.
+  elif [[ ! $color_list_length -eq 0 ]] ; then
     # Get the color index.
     if [[ "$1" = 'l' ]] ; then
       # Circle trough the list based on its length.
@@ -83,6 +101,7 @@ function getSegmentColor () {
     echo "$color"
 
 
+  # Use the default colors as fallback.
   else
     # Simply return the default color.
     echo $(eval echo "\$SEGMENT_${type}_DEFAULT")
