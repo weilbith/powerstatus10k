@@ -98,7 +98,6 @@ function updateSegment {
   local centerMiddleIndex=$((${#SEGMENT_LIST_CENTER[@]} / 2)) # Is rounded down for odd number of segments.
   local centerDistance=$(($centerMiddleIndex - $i)) # The distance of the segment index to the middle segment.
 
-
   # Left separator.
   local left_separator_format_string=""
 
@@ -108,10 +107,10 @@ function updateSegment {
     if [[ ${centerDistance} -ge 0 ]] ; then
       # In case it is the most left center segment
       if [[ ${3} -eq 0 ]] ; then
-        left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}"
+        left_separator_format_string="%{B${7} F${5} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}%{T1}"
 
       else 
-        left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_CENTER_INNER_LEFT}"
+        left_separator_format_string="%{B${7} F${5} T2}${SEGMENT_SEPARATOR_CENTER_INNER_LEFT}%{T1}"
       fi
     fi
 
@@ -119,11 +118,11 @@ function updateSegment {
   elif [[ "$4" = 'r' ]] ; then
     # In case it is the most left right segment.
     if [[ ${3} -eq 0 ]] ; then
-      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_RIGHT_OUTER}"
+      left_separator_format_string="%{B${7} F${5} T2}${SEGMENT_SEPARATOR_RIGHT_OUTER}%{T1}"
 
     # For all right segments after.
     else 
-      left_separator_format_string="%{B${7} F${5}}${SEGMENT_SEPARATOR_RIGHT_INNER}"
+      left_separator_format_string="%{B${7} F${5} T2}${SEGMENT_SEPARATOR_RIGHT_INNER}%{T1}"
     fi
   fi
   
@@ -136,11 +135,11 @@ function updateSegment {
   if [[ "$4" = 'l' ]] ; then
     # In case it is the most right left segment.
     if [[ ${3} -eq $((${#SEGMENT_LIST_LEFT[@]} - 1)) ]] ; then
-      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_LEFT_OUTER}"
+      right_separator_format_string="%{B${8} F${5} T2}${SEGMENT_SEPARATOR_LEFT_OUTER}%{T1}"
 
     # For all left segments before.
     else
-      right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_LEFT_INNER}"
+      right_separator_format_string="%{B${8} F${5} T2}${SEGMENT_SEPARATOR_LEFT_INNER}%{T1}"
     fi
 
   elif [[ "$4" = 'c' ]] ; then
@@ -148,10 +147,10 @@ function updateSegment {
     if [[ ${centerDistance} -le 0 ]] ; then
       # In case it is the most right center segment
       if [[ ${3} -eq $((${#SEGMENT_LIST_CENTER[@]} - 1)) ]] ; then
-        right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}"
+        right_separator_format_string="%{B${8} F${5} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}%{T1}"
 
       else 
-        right_separator_format_string="%{B${8} F${5}}${SEGMENT_SEPARATOR_CENTER_INNER_RIGHT}"
+        right_separator_format_string="%{B${8} F${5} T2}${SEGMENT_SEPARATOR_CENTER_INNER_RIGHT}%{T1}"
       fi
     fi
   fi
@@ -236,5 +235,5 @@ function reading {
 # Getting started
 initSegments # Start all background processes, handling the segments.
 reading | # Run process which read from the fifo and pass the whole format string to the bar.
-$BASE_DIR/lemonbar -p -d "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
+$BASE_DIR/lemonbar -p -d "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
 wait # Wait here and do not end. 
