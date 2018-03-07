@@ -9,7 +9,8 @@ source $BASE_DIR/custom.conf # Load after default values to be able to overwrite
 
 # Load exported functionality.
 source $BASE_DIR/colors.sh # Utility functions for colors.
-source $BASE_DIR/segments.sh # Basic segment functions.
+source $BASE_DIR/segment-loader.sh # Dynamically load segments which are used.
+# source $BASE_DIR/segments.sh # Basic segment functions.
 
 
 # Define deviated variables.
@@ -21,56 +22,58 @@ rm -f "${FIFO}" # Make sure to delete a possible old fifo.
 mkfifo "${FIFO}" # Create the fifo.
 
 
-# This function is responsible to spawn the background processes for updating the segments.
-# It compose a bunch of values used for each segment, the update process have to be aware about.
-# Manage the order of segments and their colors.
+# Caller function to initialize all segment sections.
 #
 function initSegments {
-  # Initialize the left segments.
-  for (( i=0; i<${#SEGMENT_LIST_LEFT[@]}; i++ )) ; do
+  initSegmentSection 'l'
+  initSegmentSection 'c'
+  initSegmentSection 'r'
+}
+
+
+# Initialize all segments for a specific section.
+# By this it spawn a background process per segment, which will update its content.
+# Therefore it compose a bunch of values this process has to be aware of.
+#
+# Arguments:
+#   $1 - orientation [l|c|r]
+#
+function initSegmentSection {
+  # Expand the orientation to the variable substring definition.
+  [[ "$1" = 'l' ]] && local orientation="LEFT"
+  [[ "$1" = 'c' ]] && local orientation="CENTER"
+  [[ "$1" = 'r' ]] && local orientation="RIGHT"
+
+  # Get the segment list for this section by the orientation.
+  eval "local segment_list=(\"\${SEGMENT_LIST_${orientation}[@]}\")"
+
+  # Iterate over all segments in this section.
+  for (( i=0; i<${#segment_list[@]}; i++ )) ; do
     # Get the next segment name.
-    local segmentName="${SEGMENT_LIST_LEFT[i]}"
+    local segment_name="${segment_list[i]}"
+
+    # Load the implementation of the segment.
+    local implementation=$(loadPlugin "$segment_name")
+
+    # Exit if no implemenation could been found, else source it.
+    if [[ "$implementation" = '' ]] ; then
+      echo "Could not load segment: $segment_name"
+      exit 1
+
+    fi
+
+    source $implementation
+
 
     # Get the back- and foreground colors for this segments.
-    local current_segment_background=$(getSegmentBackground 'l' $i)
-    local current_segment_foreground=$(getSegmentForeground 'l' $i)
-    local next_segment_background=$(getSegmentBackground 'l' $(($i + 1)))
+    local current_segment_background=$(getSegmentBackground $1 $i)
+    local current_segment_foreground=$(getSegmentForeground $1 $i)
+    local previous_segment_background=$(getSegmentBackground $1 $(($i - 1)))
+    local next_segment_background=$(getSegmentBackground $1 $(($i + 1)))
     
     # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "l" "$current_segment_background" "$current_segment_foreground" "" "$next_segment_background" &
+    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segment_name" $i $1 "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" &
   done
-
-  
-  # Initialize the center segments.
-  for (( i=0; i<${#SEGMENT_LIST_CENTER[@]}; i++ )) ; do
-    # Get the next segment name.
-    local segmentName="${SEGMENT_LIST_CENTER[i]}"
-   
-    # Get the back- and foreground colors for this segments.
-    local current_segment_background=$(getSegmentBackground 'c' $i)
-    local current_segment_foreground=$(getSegmentForeground 'c' $i)
-    local previous_segment_background=$(getSegmentBackground 'c' $(($i - 1)))
-    local next_segment_background=$(getSegmentBackground 'c' $(($i + 1)))
-
-    # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "c" ${current_segment_background} ${current_segment_foreground} ${previous_segment_background} ${next_segment_background} &
-  done
-
-  # Initialize the right segments.
-  for (( i=0; i<${#SEGMENT_LIST_RIGHT[@]}; i++ )) ; do
-    # Get the next segment name.
-    local segmentName="${SEGMENT_LIST_RIGHT[i]}"
-
-    # Get the back- and foreground colors for this segments.
-    local current_segment_background=$(getSegmentBackground 'r' $i)
-    local current_segment_foreground=$(getSegmentForeground 'r' $i)
-    local previous_segment_background=$(getSegmentBackground 'r' $(($i - 1)))
-
-    # Open a background process, which updates this segment.
-    updateSegment "${SEGMENT_UPDATE_INTERVAL_DEFAULT}s" "$segmentName" $i "r" "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "" &
-  done
-
-
 }
 
 
@@ -184,6 +187,7 @@ function updateSegment {
     sleep "$1"
   done
 }
+
 
 # Function which run in background and read from the fifo.
 # Hold an array where each entry is the format string of one segment.
