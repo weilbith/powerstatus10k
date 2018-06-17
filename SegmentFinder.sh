@@ -36,7 +36,7 @@ function loadPlugin {
     fi
   done
 
-  # No implemenation could been found.
+  # No implementation could been found.
 }
 
 
@@ -55,7 +55,7 @@ function checkName {
   local basename="$(basename "$1")"
   local name="${basename%.*}"
 
-  # Compare the file name of the implemenation with the requested segment name.
+  # Compare the file name of the implementation with the requested segment name.
   if [[ "$name" = "$2" ]] ; then
     echo true
 
