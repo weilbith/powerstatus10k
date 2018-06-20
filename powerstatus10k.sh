@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Store the source directory, cause it is used several times.
+# Store the source and configuration directory, cause it is used several times.
 BASE_DIR="$(dirname $0)"
+CONFIG_DIR=$BASE_DIR/config
 
 # Load the default and user configurations.
-source $BASE_DIR/default.conf # Default values for all necessary variables.
-source $BASE_DIR/custom.conf # Load after default values to be able to overwrite them.
+source $CONFIG_DIR/default.conf # Default values for all necessary variables.
+source $CONFIG_DIR/custom.conf # Load after default values to be able to overwrite them.
 
 # Source exported functionality.
 source $BASE_DIR/ColorUtils.sh # Utility functions for colors.

@@ -1,3 +1,7 @@
 # Vim things
 tags
 Session.vim
+
+# Custom stuff
+segments/default/
+config/custom.conf
