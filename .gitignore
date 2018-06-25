@@ -3,5 +3,5 @@ tags
 Session.vim
 
 # Custom stuff
-segments/default/
+segments/custom/
 config/custom.conf
