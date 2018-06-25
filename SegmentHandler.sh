@@ -28,8 +28,9 @@ SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
 #   $9 - segment implementation path (relative)
 #
 function updateSegment {
-  # Source the implementation of this segment.
+  # Source the implementation of this segment and update configuration.
   source $9
+  source $CONFIG_DIR/custom.conf # Load again to update segment specific custom variables.
 
   # Define static variables in use to update the segment.
   local left_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'l' $3 $4 $5 $7 $8)"
