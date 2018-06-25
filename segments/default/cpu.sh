@@ -1,12 +1,15 @@
 #!/bin/bash
-
-# Icon
-CPU_ICON="CPU"
+#
+# PowerStatus10k segment.
+# Segment displays the current average CPU usage.
+# This segment is still buggy, cause the stored values doesn't work.
 
 # Calculation variables.
 CPU_PREV_TOTAL=0
 CPU_PREV_IDLE=0
 
+# Implement the interface function to get the current state.
+#
 function getState_cpu {
   cpu=$(cat /proc/stat | grep -o -P '(?<=cpu ).*') # Get the total CPU statistics.
   idle=$(echo $cpu | cut -d ' ' -f 4) # Get the idle CPU time.

@@ -1,10 +1,12 @@
 #!/bin/bash
+#
+# PowerStatus10k segment.
+# This segment displays the current sound output status.
+# On the top level it differs between muted and not.
+# Furthermore it classifies the volume and differ the icon by this.
 
-# Icons and their thresholds.
-SOUND_ICON_MUTED="ﱝ"
-SOUND_ICONS_LEVELS=("" "墳" " ")
-SOUND_THRESHOLDS=(75 50 25 0)
-
+# Implement the interface function to get the current state.
+#
 function getState_sound {
   # Check if the sound is muted.
   if [[ $(pactl list sinks | grep Mute) = *yes* ]] ; then

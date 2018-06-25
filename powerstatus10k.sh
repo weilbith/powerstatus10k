@@ -71,11 +71,12 @@ function initSegmentSection {
     # Get the next segment name.
     local segment_name="${segment_list[i]}"
 
-    # Load the implementation of the segment.
-    local implementation=$(loadPlugin "$segment_name")
+    # Load the implementation and configuration of the segment.
+    local implementation=$(getSegmentImplementation "$segment_name")
+    local configuration=$(getSegmentConfiguration "$segment_name")
 
     # Exit if no implementation could been found.
-    if [[ "$implementation" = '' ]] ; then
+    if [[ -z "$implementation" ]] ; then
       echo "Could not load segment: $segment_name"
       exit 1
     fi
@@ -99,7 +100,7 @@ function initSegmentSection {
     fi
 
     # Open a background process, which updates this segment.
-    $SCRIPT_SEGMENT_HANDLER "${update_interval}s" "$segment_name" $1 $i "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" $implementation &
+    $SCRIPT_SEGMENT_HANDLER "${update_interval}s" "$segment_name" $1 $i "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" $implementation $configuration &
 
     # Store the PID to be able to kill it later on.
     PID_LIST="$PID_LIST $!"

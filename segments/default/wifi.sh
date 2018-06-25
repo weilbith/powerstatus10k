@@ -1,12 +1,12 @@
 #!/bin/bash
+#
+# PowerStatus10k segment.
+# This segment displays the wifi status.
+# Differs between connected and not to differ the icon.
+# If connected, it shows the ESSID of the network.
 
-# Icons
-WIFI_ICON_CONNECTED="直"
-WIFI_ICON_DISCONNECTED="睊"
-
-# Interface name variable.
-WIFI_INTERFACE_NAME="wlp4s0"
-
+# Implement the interface function to get the current state.
+#
 function getState_wifi {
   icon="${WIFI_ICON_CONNECTED}" # Use the connected icon per default.
   essid=$(iwconfig ${WIFI_INTERFACE_NAME} | grep -o -P '(?<=ESSID:).*') 

@@ -1,15 +1,13 @@
 #!/bin/bash
+#
+# PowerStatus10k segment.
+# This segment displays the current battery status.
+# The segment differ between charging and discharging.
+# The battery capacity is classified to display different icons representing the current
+# capacity level.
 
-# Icons and their thresholds.
-BATTERY_ICONS_CHARGING=("  " "  " "  " "  " "  ")
-BATTERY_ICONS_DISCHARGING=(" " " " " " " " " ")
-BATTERY_THRESHOLDS=(90 60 40 10 0)
-
-# Paths
-BATTERY_PATH_CHARGE='/sys/class/power_supply/AC/online'
-BATTERY_PATH_CAPACITY='/sys/class/power_supply/BAT1/capacity'
-
-
+# Implement the interface function to get the current state.
+#
 function getState_battery {
   # Get the current capacity.
   capacity=0

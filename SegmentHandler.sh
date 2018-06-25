@@ -17,20 +17,26 @@ SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
 # The updated format string will be written to the fifo, where it gets read and pass to the bar.
 #
 # Arguments:
-#   $1 - The interval in which the segment should be updated
-#   $2 - Name of the segment (used as reference)
-#   $3 - Orientation [l|r|c]
-#   $4 - Index in the segment order
-#   $5 - Background color of this segment
-#   $6 - Foreground color of this segment
-#   $7 - Background color of the previous segment (for the separator)
-#   $8 - Background color of the next segment (for the separator)
-#   $9 - segment implementation path (relative)
+#   $1  - The interval in which the segment should be updated
+#   $2  - Name of the segment (used as reference)
+#   $3  - Orientation [l|r|c]
+#   $4  - Index in the segment order
+#   $5  - Background color of this segment
+#   $6  - Foreground color of this segment
+#   $7  - Background color of the previous segment (for the separator)
+#   $8  - Background color of the next segment (for the separator)
+#   $9  - segment implementation path (relative)
+#   $10 - segment confiuration path (relative)
 #
 function updateSegment {
-  # Source the implementation of this segment and update configuration.
+  # Source the implementation and configuration of this segment.
   source $9
-  source $CONFIG_DIR/custom.conf # Load again to update segment specific custom variables.
+
+  if [[ ! -z "${10}" ]] ; then
+    source ${10}
+    source $CONFIG_DIR/custom.conf # Load again to update segment specific custom variables.
+  fi
+  
 
   # Define static variables in use to update the segment.
   local left_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'l' $3 $4 $5 $7 $8)"
