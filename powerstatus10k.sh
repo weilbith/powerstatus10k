@@ -20,6 +20,7 @@ PID_LIST=""
 
 # Define deviated variables.
 [[ "$BOTTOM" = true ]] && BAR_BOTTOM_ARG="-b"
+[[ "$FORCE_DOCKING" = true ]] && BAR_FORCE_DOCKING="-d"
 
 # Execute cleanup function at script exit.
 trap cleanup EXIT
@@ -159,5 +160,5 @@ function reading {
 # Getting started
 initSegments # Start all background processes, handling the segments.
 reading | # Run process which read from the fifo and pass the whole format string to the bar.
-$BASE_DIR/lemonbar -p -d "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
+$BASE_DIR/lemonbar -p "$BAR_FORCE_DOCKING" "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
 wait # Wait here and do not end. 
