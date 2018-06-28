@@ -10,7 +10,7 @@
 function getState_sound {
   # Check if the sound is muted.
   if [[ $(pactl list sinks | grep Mute) = *yes* ]] ; then
-   echo "${SOUND_ICON_MUTEDS}"
+   echo "${SOUND_ICON_MUTED}"
    return
 
   else 

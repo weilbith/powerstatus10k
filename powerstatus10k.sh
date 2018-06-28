@@ -3,6 +3,7 @@
 # Store the source and configuration directory, cause it is used several times.
 BASE_DIR="$(dirname $0)"
 CONFIG_DIR=$BASE_DIR/config
+BAR_DIR=$BASE_DIR/bar
 
 # Load the default and user configurations.
 source $CONFIG_DIR/default.conf # Default values for all necessary variables.
@@ -160,5 +161,6 @@ function reading {
 # Getting started
 initSegments # Start all background processes, handling the segments.
 reading | # Run process which read from the fifo and pass the whole format string to the bar.
-$BASE_DIR/lemonbar -p "$BAR_FORCE_DOCKING" "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
+$BAR_DIR/lemonbar -p "$BAR_FORCE_DOCKING" "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
+PID_LIST="$PID_LIST $!" # Add the lemonbar process identifier to the list as well.
 wait # Wait here and do not end. 

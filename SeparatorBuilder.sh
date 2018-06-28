@@ -42,12 +42,12 @@ function getLeftSeparator {
     if [[ ${centerDistance} -ge 0 ]] ; then
       # In case it is the most left center segment
       if [[ ${2} -eq 0 ]] ; then
-        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}%{T1}"
+        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_LEFT}%{B- F- T1}"
         return
 
       # For all left center segments after.
       else 
-        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_INNER_LEFT}%{T1}"
+        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_INNER_LEFT}%{B- F- T1}"
         return
       fi
 
@@ -58,12 +58,12 @@ function getLeftSeparator {
   elif [[ "$1" = 'r' ]] ; then
     # In case it is the most left right segment.
     if [[ ${2} -eq 0 ]] ; then
-      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_RIGHT_OUTER}%{T1}"
+      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_RIGHT_OUTER}%{B- F- T1}"
       return
 
     # For all right segments after.
     else 
-      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_RIGHT_INNER}%{T1}"
+      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_RIGHT_INNER}%{B- F- T1}"
       return
     fi
   fi
@@ -88,11 +88,11 @@ function getRightSeparator {
   if [[ "$1" = 'l' ]] ; then
     # In case it is the most right left segment.
     if [[ ${2} -eq $((${#SEGMENT_LIST_LEFT[@]} - 1)) ]] ; then
-      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_LEFT_OUTER}%{T1}"
+      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_LEFT_OUTER}%{B- F- T1}"
 
     # For all left segments before.
     else
-      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_LEFT_INNER}%{T1}"
+      echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_LEFT_INNER}%{B- F- T1}"
     fi
 
   # For center segments.
@@ -101,11 +101,11 @@ function getRightSeparator {
     if [[ ${centerDistance} -le 0 ]] ; then
       # In case it is the most right center segment
       if [[ ${2} -eq $((${#SEGMENT_LIST_CENTER[@]} - 1)) ]] ; then
-        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}%{T1}"
+        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_OUTER_RIGHT}%{B- F- T1}"
 
       # For all right center segments before.
       else 
-        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_INNER_RIGHT}%{T1}"
+        echo "%{B${4} F${3} T2}${SEGMENT_SEPARATOR_CENTER_INNER_RIGHT}%{B- F- T1}"
       fi
     fi
 
