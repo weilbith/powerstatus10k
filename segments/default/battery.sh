@@ -21,7 +21,7 @@ function getState_battery {
   charging=0
 
   if [[ -f "$BATTERY_PATH_CHARGE" ]] ; then
-    charging=$(cat "${BATTERY_PATH_CHARGE}")
+    charging=$(cat "${BATTERY_PATH_CHARGE}") # Get the additional icon.
   fi
 
   # Differ the icon list if charging.
@@ -44,7 +44,18 @@ function getState_battery {
     fi
   done
 
+  # Set the color for the critical or full state.
+  local color
+
+  if [ ! $charging -eq 1 -a $capacity -le $BATTERY_CRITICAL_THRESHOLD ] ; then
+    color="%{F${BATTERY_CRITICAL_COLOR}}"
+
+  elif [ $charging -eq 1 -a $capacity -ge $BATTERY_FULL_THRESHOLD ] ; then
+    color="%{F${BATTERY_FULL_COLOR}}"
+  fi
+
+
   # Build the status string.
-  echo "${icon} ${capacity}%"
+  echo "${color}${icon} ${capacity}"
   return
 }
