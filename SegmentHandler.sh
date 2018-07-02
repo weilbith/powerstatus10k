@@ -17,31 +17,41 @@ SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
 # The updated format string will be written to the fifo, where it gets read and pass to the bar.
 #
 # Arguments:
-#   $1  - The interval in which the segment should be updated
-#   $2  - Name of the segment (used as reference)
-#   $3  - Orientation [l|r|c]
-#   $4  - Index in the segment order
-#   $5  - Background color of this segment
-#   $6  - Foreground color of this segment
-#   $7  - Background color of the previous segment (for the separator)
-#   $8  - Background color of the next segment (for the separator)
-#   $9  - segment implementation path (relative)
-#   $10 - segment confiuration path (relative)
+#   $1  - Name of the segment (used as reference)
+#   $2  - Orientation [l|r|c]
+#   $3  - Index in the segment order
+#   $4  - Background color of this segment
+#   $5  - Foreground color of this segment
+#   $6  - Background color of the previous segment (for the separator)
+#   $7  - Background color of the next segment (for the separator)
+#   $8  - segment implementation path (relative)
+#   $9  - segment confiuration path (relative)
 #
 function updateSegment {
   # Source the implementation and configuration of this segment.
-  source $9
+  source $8
 
-  if [[ ! -z "${10}" ]] ; then
-    source ${10}
+  if [[ ! -z "$9" ]] ; then
+    source $9
     source $CONFIG_DIR/custom.conf # Load again to update segment specific custom variables.
   fi
-  
+
+  # Define the update interval by try to get a custom defined one or use defaul.
+  local update_interval
+  eval "local custom_update_interval=\$${1^^}_UPDATE_INTERVAL"
+
+  if [[ ${custom_update_interval} -gt 0 ]] ; then
+    # Use custom interval.
+    update_interval=$custom_update_interval
+  else
+    # Use default interval.
+    update_interval=${DEFAULT_UPDATE_INTERVAL}
+  fi
 
   # Define static variables in use to update the segment.
-  local left_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'l' $3 $4 $5 $7 $8)"
-  local right_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'r' $3 $4 $5 $7 $8)"
-  local state_color_before="%{B${5} F${6}}"
+  local left_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'l' $2 $3 $4 $6 $7)"
+  local right_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'r' $2 $3 $4 $6 $7)"
+  local state_color_before="%{B${4} F${5}}"
   local color_clear="%{F- B-}"
   local segment_format_string
 
@@ -51,7 +61,7 @@ function updateSegment {
   # Start a endless loop for this process, responsible for this segment.
   while true ; do
     # Get the current state of the segment, by its reposible function.
-    local state=$("getState_$2")
+    local state=$("getState_$1")
 
     # Do nothing further, it the state has not changed.
     if [[ ! "$lastState" = "$state" ]] ; then
@@ -62,11 +72,11 @@ function updateSegment {
       segment_format_string="${left_separator_format_string}${state_color_before} ${state} ${right_separator_format_string}${color_clear}"
 
       # Pass the format string to the fifo. 
-      printf "%s\n" "${4}${3}${segment_format_string}" > "${FIFO}" &
+      printf "%s\n" "${3}${2}${segment_format_string}" > "${FIFO}" &
     fi
 
     # Wait for the defined period.
-    sleep "$1"
+    sleep "${update_interval}s"
   done
 }
 

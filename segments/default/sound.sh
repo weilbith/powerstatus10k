@@ -30,6 +30,6 @@ function getState_sound {
       fi
     done
 
-    echo "${icon} ${volume}"
+    echo "${icon} ${volume}%"
   fi
 }

@@ -89,20 +89,8 @@ function initSegmentSection {
     local previous_segment_background=$(getSegmentBackground $1 $(($i - 1)))
     local next_segment_background=$(getSegmentBackground $1 $(($i + 1)))
 
-    # Define the update interval by try to get a custom defined one or use defaul.
-    local update_interval
-    eval "local custom_update_interval=\$${segment_name^^}_UPDATE_INTERVAL"
-
-    if [[ ${custom_update_interval} -gt 0 ]] ; then
-      # Use custom interval.
-      update_interval=$custom_update_interval
-    else
-      # Use default inverval.
-      update_interval=${DEFAULT_UPDATE_INTERVAL}
-    fi
-
     # Open a background process, which updates this segment.
-    $SCRIPT_SEGMENT_HANDLER "${update_interval}s" "$segment_name" $1 $i "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" $implementation $configuration &
+    $SCRIPT_SEGMENT_HANDLER "$segment_name" $1 $i "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" $implementation $configuration &
 
     # Store the PID to be able to kill it later on.
     PID_LIST="$PID_LIST $!"
