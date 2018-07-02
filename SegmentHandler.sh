@@ -4,9 +4,8 @@
 BASE_DIR="$(dirname $0)"
 CONFIG_DIR=$BASE_DIR/config
 
-# Load the default and user configurations.
-source $CONFIG_DIR/default.conf # Default values for all necessary variables.
-source $CONFIG_DIR/custom.conf # Load after default values to be able to overwrite them.
+# Source the default update interval and FIFO name from the cofigurations.
+source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO")
 
 # Script "Imports"
 SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
@@ -28,13 +27,17 @@ SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
 #   $9  - segment confiuration path (relative)
 #
 function updateSegment {
+  # Sourcing
   # Source the implementation and configuration of this segment.
   source $8
 
+  # Source the segments own default configuration.
   if [[ ! -z "$9" ]] ; then
     source $9
-    source $CONFIG_DIR/custom.conf # Load again to update segment specific custom variables.
   fi
+
+  # Source the custom configuration for this segment.
+  source <(cat $CONFIG_DIR/custom.conf | grep -i "^$1|^COLOR")
 
   # Define the update interval by try to get a custom defined one or use defaul.
   local update_interval
