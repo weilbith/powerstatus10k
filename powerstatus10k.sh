@@ -119,8 +119,15 @@ function reading {
 
   # Keep open endless loop as long as the process is running.
   while true ; do
-    # Wait until fifo has content.
-    if read line ; then
+    # Wait until FIFO has content.
+    # Be aware that this does read the whole FIFO and does not to be split.
+    state="$(cat "$FIFO")"
+    readarray -t lines <<<"$state"
+
+    # Parse each entry of the read FIFO content.
+    for (( i=0; i<${#lines[@]}; i++ )) ; do
+      line="${lines[i]}"
+
       # Parse the first and second character as the orientation and the index of the segment.
       index=${line:0:1}
       orientation=${line:1:1}
@@ -136,19 +143,22 @@ function reading {
       format_string_right=$(printf %s "${format_string_list_right[@]}" $'\n')
       format_string="%{l}${format_string_left}%{c}${format_string_center}%{r}${format_string_right}"
 
+      # Forward this to the bar.
       echo ${format_string}
-    fi
 
-    # Sleep minimum of time, after which a new update is possible.
-    # In case that the FIFO directly contains a new update, it would be ignored by the lemonbar, if no short delay is inserted.
-    sleep 0.03s
-  done < "$FIFO"
+      # Sleep minimum of time, after which a new update is possible.
+      # In case that the FIFO directly contains a new update, it would be ignored by the lemonbar,
+      # if no short delay is inserted
+      sleep 0.03s
+    done
+
+  done
 }
 
 
 # Getting started
 initSegments # Start all background processes, handling the segments.
-reading | # Run process which read from the fifo and pass the whole format string to the bar.
+reading |  # Run process which read from the fifo and pass the whole format string to the bar.
 $BAR_DIR/lemonbar -p "$BAR_FORCE_DOCKING" "$BAR_BOTTOM_ARG" -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" -g "x$HEIGHT" & # Run lemonbar in background and read from the standard input.
 PID_LIST="$PID_LIST $!" # Add the lemonbar process identifier to the list as well.
 wait # Wait here and do not end. 
