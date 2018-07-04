@@ -23,7 +23,7 @@ function getAbbreviationConfigValue {
   
   # If no custom value is defined, get the default one.
   if [[ -z "$value" ]] ; then
-    eval "value=\$DEFAULT_ABBREVIATION_$1"
+    eval "value=\$ABBREVIATION_$1"
   fi
 
   echo "$value"
@@ -65,7 +65,7 @@ function abbreviate {
       # Cut out the parts.
       partOne=${1:0:partLength}
       partTwo=${1:partTwoStart}
-
+  
       echo "${partOne}${string}${partTwo}"
 
     else

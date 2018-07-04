@@ -19,7 +19,8 @@ function getState_wifi {
 
   # Remove quotation marks around the ESSID.
   essid=$(echo "${essid}" | sed 's/"//g')
+  essidAbbr=$(abbreviate "$essid" "wifi")
 
   # Build the state string.
-  echo "${icon} ${essid}"
+  echo "${icon} ${essidAbbr}"
 }

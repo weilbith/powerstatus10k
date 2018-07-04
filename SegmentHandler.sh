@@ -31,7 +31,7 @@ INDEX=$3
 
 # Sourcing
 # Source the default update interval and FIFO name from the configurations.
-source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION_ENABLED")
+source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION")
 
 # Source the implementation and configuration of this segment.
 source $8
@@ -49,22 +49,16 @@ eval "abbreviationAvailable=\$${NAME^^}_ABBREVIATION_AVAILABLE"
 
 # Check if this segment has abbreviations available.
 if [[ "$abbreviationAvailable" = 'true' ]] ; then
-  echo "Abbreviation is enabled for $NAME" >> test.log
   # Check if the user has explicitly enabled abbreviations for this segment.
   eval "abbreviationEnabled=\$${NAME^^}_ABBREVIATION_ENABLED"
 
-  echo "Excplitely: $abbreviationEnabled" >> test.log
-
   # If not, check the default abbreviation enable which at least set by the default configuration.
   if [[ -z "$abbreviationEnabled" ]] ; then
-    echo "Load default config" >> test.log
     abbreviationEnabled=$ABBREVIATION_ENABLED
-    echo "Result: $abbreviationEnabled" >> test.log
   fi
 
   # Source the abbreviation utilities for this segment.
   if [[ "$abbreviationEnabled" = 'true' ]] ; then
-    echo "Load utils" >> test.log
     source $BASE_DIR/AbbreviationUtils.sh
 
   # Provide a dummy function, so the segment doesn't fail on try to abbreviate.
