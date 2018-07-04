@@ -30,8 +30,8 @@ INDEX=$3
 
 
 # Sourcing
-# Source the default update interval and FIFO name from the cofigurations.
-source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO")
+# Source the default update interval and FIFO name from the configurations.
+source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION_ENABLED")
 
 # Source the implementation and configuration of this segment.
 source $8
@@ -42,15 +42,46 @@ if [[ ! -z "$9" ]] ; then
 fi
 
 # Source the custom configuration for this segment.
-echo "$NAME" >> test.log
-source <(cat $CONFIG_DIR/custom.conf | grep -i -E "^$1|^COLOR")
+source <(cat $CONFIG_DIR/custom.conf | grep -i -E "^$1|^COLOR|^ABBREVIATION")
+
+# Source the abbreviation utils.
+eval "abbreviationAvailable=\$${NAME^^}_ABBREVIATION_AVAILABLE"
+
+# Check if this segment has abbreviations available.
+if [[ "$abbreviationAvailable" = 'true' ]] ; then
+  echo "Abbreviation is enabled for $NAME" >> test.log
+  # Check if the user has explicitly enabled abbreviations for this segment.
+  eval "abbreviationEnabled=\$${NAME^^}_ABBREVIATION_ENABLED"
+
+  echo "Excplitely: $abbreviationEnabled" >> test.log
+
+  # If not, check the default abbreviation enable which at least set by the default configuration.
+  if [[ -z "$abbreviationEnabled" ]] ; then
+    echo "Load default config" >> test.log
+    abbreviationEnabled=$ABBREVIATION_ENABLED
+    echo "Result: $abbreviationEnabled" >> test.log
+  fi
+
+  # Source the abbreviation utilities for this segment.
+  if [[ "$abbreviationEnabled" = 'true' ]] ; then
+    echo "Load utils" >> test.log
+    source $BASE_DIR/AbbreviationUtils.sh
+
+  # Provide a dummy function, so the segment doesn't fail on try to abbreviate.
+  else
+    function abbreviate {
+      echo "$1"
+    }
+  fi
+fi
+
+
 
 # Define static variables in use to update the segment.
-left_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'l' $2 $3 $4 $6 $7)"
-right_separator_format_string="$($SCRIPT_SEPARATOR_BUILDER 'r' $2 $3 $4 $6 $7)"
-state_color_before="%{B${4} F${5}}"
-color_clear="%{F- B-}"
-segment_format_string=""
+LEFT_SEPARATOR_FORMAT_STRING="$($SCRIPT_SEPARATOR_BUILDER 'l' $2 $3 $4 $6 $7)"
+RIGHT_SEPARATOR_FORMAT_STRING="$($SCRIPT_SEPARATOR_BUILDER 'r' $2 $3 $4 $6 $7)"
+STATE_COLOR_BEFORE="%{B${4} F${5}}"
+COLOR_CLEAR="%{F- B-}"
 
 # Build the format string by the given current state
 # and a bunch of pre-calculated values.
@@ -60,11 +91,14 @@ segment_format_string=""
 #   $1 - current state as content of the segment
 #
 function buildAndForward {
-  # Compose the segment format string.
-  segment_format_string="${left_separator_format_string}${state_color_before} ${1} ${right_separator_format_string}${color_clear}"
+  # Add the control parts.
+  formatString="${INDEX}${ORIENTATION}"
+
+  # Add separators and content.
+  formatString="${formatString}${LEFT_SEPARATOR_FORMAT_STRING}${STATE_COLOR_BEFORE} ${1} ${RIGHT_SEPARATOR_FORMAT_STRING}${COLOR_CLEAR}"
 
   # Pass the format string to the FIFO. 
-  printf "%s\n" "${INDEX}${ORIENTATION}${segment_format_string}" > "${FIFO}" &
+  printf "%s\n" "${formatString}" > "${FIFO}" &
 }
 
 # Function that will handle a subscribing segments process.
