@@ -33,7 +33,7 @@ INDEX=$3
 # Source the default update interval and FIFO name from the configurations.
 source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION")
 
-# Source the implementation and configuration of this segment.
+# Source the implementation of this segment.
 source $8
 
 # Source the segments own default configuration.
@@ -106,17 +106,17 @@ function handleSubscribtionSegment {
   mkfifo "${segmentFifo}" # Create the FIFO.
 
   # Get the initial content of the segment and display it.
-  state=$("initState_$NAME")
-  buildAndForward "$state"
+  { "initState_$NAME"; }
+  buildAndForward "$STATE"
 
   while true ; do
     # Wait until FIFO has content.
-    state="$(cat "$segmentFifo")"
+    content="$(cat "$segmentFifo")"
 
     # Let the segment implementation build the format string.
-    formatString=$("format_$NAME" "$state")
+    { "format_$NAME" "$content"; }
 
-    buildAndForward "$formatString"
+    buildAndForward "$STATE"
   done
 }
 
@@ -143,14 +143,14 @@ function handleCycleSegment {
   # Start a endless loop for this process, responsible for this segment.
   while true ; do
     # Get the current state of the segment, by its reposible function.
-    state=$("getState_$NAME")
+    { "getState_$NAME"; }
 
     # Do nothing further, it the state has not changed.
-    if [[ ! "$lastState" = "$state" ]] ; then
+    if [[ ! "$lastState" = "$STATE" ]] ; then
       # Store state for next update.
-      lastState="$state"
+      lastState="$STATE"
 
-      buildAndForward "$state"
+      buildAndForward "$STATE"
     fi
 
     # Wait for the defined period.

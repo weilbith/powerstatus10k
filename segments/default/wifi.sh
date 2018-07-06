@@ -22,5 +22,5 @@ function getState_wifi {
   essidAbbr=$(abbreviate "$essid" "wifi")
 
   # Build the state string.
-  echo "${icon} ${essidAbbr}"
+  STATE="${icon} ${essidAbbr}"
 }

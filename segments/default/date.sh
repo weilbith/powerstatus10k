@@ -8,5 +8,5 @@
 # Implement the interface function to get the current state.
 #
 function getState_date {
-  echo "${DATE_ICON} $(date +"$DATE_FORMAT")"
+  STATE="${DATE_ICON} $(date +"$DATE_FORMAT")"
 }

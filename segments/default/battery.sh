@@ -56,6 +56,5 @@ function getState_battery {
 
 
   # Build the status string.
-  echo "${color}${icon} ${capacity}%"
-  return
+  STATE="${color}${icon} ${capacity}%"
 }

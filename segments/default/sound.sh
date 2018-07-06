@@ -10,8 +10,7 @@
 function getState_sound {
   # Check if the sound is muted.
   if [[ $(pactl list sinks | grep Mute) = *yes* ]] ; then
-   echo "%{F${SOUND_COLOR_MUTED}}${SOUND_ICON_MUTED}"
-   return
+   STATE="%{F${SOUND_COLOR_MUTED}}${SOUND_ICON_MUTED}"
 
   else 
     # Get the current volume.
@@ -30,6 +29,6 @@ function getState_sound {
       fi
     done
 
-    echo "${icon} ${volume}%"
+    STATE="${icon} ${volume}%"
   fi
 }

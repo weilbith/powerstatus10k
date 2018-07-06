@@ -33,5 +33,5 @@ function getState_cpu {
   CPU_PREV_IDLE="$idle"
 
   # Build the state string.
-  echo "${CPU_ICON} ${diff_usage}%"
+  STATE="${CPU_ICON} ${diff_usage}%"
 }
