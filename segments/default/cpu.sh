@@ -2,7 +2,6 @@
 #
 # PowerStatus10k segment.
 # Segment displays the current average CPU usage.
-# This segment is still buggy, cause the stored values doesn't work.
 
 # Calculation variables.
 CPU_PREV_TOTAL=0
