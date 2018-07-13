@@ -112,11 +112,17 @@ function handleSubscribtionSegment {
   while true ; do
     # Wait until FIFO has content.
     content="$(cat "$segmentFifo")"
+    readarray -t lines <<<"$content"
 
-    # Let the segment implementation build the format string.
-    { "format_$NAME" "$content"; }
+    # Parse each entry of the read FIFO content.
+    for (( i=0; i<${#lines[@]}; i++ )) ; do
+      line="${lines[i]}"
 
-    buildAndForward "$STATE"
+      # Let the segment implementation build the format string.
+      { "format_$NAME" "$line"; }
+
+      buildAndForward "$STATE"
+    done
   done
 }
 
