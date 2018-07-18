@@ -13,7 +13,7 @@ function getSegmentBackground () {
   [[ "$1" = 'c' ]] && local segment_length=$((${#SEGMENT_LIST_CENTER[@]} -1))
   [[ "$1" = 'r' ]] && local segment_length=$((${#SEGMENT_LIST_RIGHT[@]} -1))
 
-  # Return the default bar background for segment indexes outsite of the list.
+  # Return the default bar background for segment indexes outside of the list.
   if [[ $2 -lt 0 || $2 -gt $segment_length ]] ; then
     echo $DEFAULT_BACKGROUND
   
@@ -23,7 +23,7 @@ function getSegmentBackground () {
 }
 
 
-# Get the foreground color of a segment, specified by its orientiation and index.
+# Get the foreground color of a segment, specified by its orientation and index.
 # Do not check for an valid index here. In such case a "random" color gets returned.
 #
 # Arguments:
@@ -88,7 +88,7 @@ function getSegmentColor () {
 
     else
       # Use the color list in reverse order to have a symmetry.
-      local color_index=$(($color_list_length - $(($2 % $color_list_length)) - 1))
+      local color_index=$((($colo_list_lenth - $2) % $color_list_length))
     fi
 
     # Return the correct color from the color list.
