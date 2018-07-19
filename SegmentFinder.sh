@@ -48,64 +48,46 @@ function getSegmentConfiguration {
 #   (empty if none could been found)
 #
 function getSegmentPart {
-  # Search at the default segment folder.
-  for file in $SEGMENT_FOLDER_DEFAULT/* ; do
-    local found=$(checkName $file $1 $2)
+  # Get the file extension for the responsible type.
+  [[ "$2" == "$IMPLEMENTATION" ]] && extension="sh"
+  [[ "$2" == "$CONFIGURATION" ]] && extension="conf"
 
-    if [[ "$found" = 'true' ]] ; then
-      echo "$file"
-      return # Stop searching.
-    fi
-  done
+  # Segment as repository.
+  if [[ "$1" = *'/'* ]] ; then
+    name=${1##*/} # The folder name and is the same as the file name.
+    name_pure=${name##*powerstatus10k_} # Cut of a possible leading prefix.
 
-  # Search at the custom segment folder.
-  for file in $SEGMENT_FOLDER_CUSTOM/* ; do
-    found=$(checkName $file $1 $2)
-
-    if [[ "$found" = 'true' ]] ; then
-      echo $file
-      return # Stop searching.
-    fi
-  done
-
-  # No implementation could been found.
-}
-
-
-# Check if the given path of a segment file fits with the requested one.
-# Differs between the implementation of a segment and its configuration.
-# 
-# Arguments:
-#   $1 - path to implementation
-#   $2 - segment name
-#   $3 - implementation or configuration (see constants)
-#
-# Return:
-#   true  - if path fits to the segment name
-#   false - else
-#
-function checkName {
-  # Extract the pure file name.
-  local basename="$(basename "$1")"
-  local name="${basename%.*}"
-  local extension="${basename#*.}"
-
-  # Compare the file name of the file with the requested segment name.
-  if [[ "$name" = "$2" ]] ; then
-    # Check the correct file extension for an implementation.
-    if [ "$3" == "$IMPLEMENTATION" -a "$extension" == 'sh' ] ; then
-      echo true
-
-    # Check the correct file extension for a configuration.
-    elif [ "$3" == "$CONFIGURATION" -a "$extension" == 'conf' ] ; then
-      echo true
-
-    # Doesn't fit any.
-    else
-      echo false
+    # Get the repository if it does not exist yet.
+    if [[ ! -d "${SEGMENT_FOLDER_CUSTOM}/${name}" ]] ; then
+      url="https://github.com/${1}.git"
+      git clone --depth 1 $url $SEGMENT_FOLDER_CUSTOM/${name}
     fi
 
-  else 
-    echo false
+    # Define the possible files for the requested type.
+    file="${SEGMENT_FOLDER_CUSTOM}/${name}/${name}.${extension}"
+    file_pure="${SEGMENT_FOLDER_CUSTOM}/${name}/${name_pure}.${extension}"
+
+    # Check if the file exist to return it.
+    # Else the response will leave empty.
+    [[ -f "$file" ]] && echo "${name}:${file}" && return
+    [[ -f "$file_pure" ]] && echo "${name_pure}:${file_pure}" && return
+
+  # Segment as pure file or sub-directory.
+  else
+    # Pure file in the default segment folder.
+    file="${SEGMENT_FOLDER_DEFAULT}/${1}.${extension}"
+    [[ -f "$file" ]] && echo "${1}:${file}" && return
+
+    # Segment in a sub-directory of the default folder.
+    file="${SEGMENT_FOLDER_DEFAULT}/${1}/${1}.${extension}"
+    [[ -f "$file" ]] && echo "${1}:${file}" && return
+
+    # Pure file in the custom segment folder.
+    file="${SEGMENT_FOLDER_CUSTOM}/${1}.${extension}"
+    [[ -f "$file" ]] && echo "${1}:${file}" && return
+
+    # Segment in a sub-directory of the custom folder.
+    file="${SEGMENT_FOLDER_CUSTOM}/${1}/${1}.${extension}"
+    [[ -f "$file" ]] && echo "${1}:${file}" && return
   fi
 }

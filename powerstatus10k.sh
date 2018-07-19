@@ -73,15 +73,22 @@ function initSegmentSection {
     # Get the next segment name.
     local segment_name="${segment_list[i]}"
 
-    # Load the implementation and configuration of the segment.
-    local implementation=$(getSegmentImplementation "$segment_name")
-    local configuration=$(getSegmentConfiguration "$segment_name")
+    # Get the implementation and configuration information for this segment.
+    local implementationInfo=$(getSegmentImplementation "$segment_name")
+    local configurationInfo=$(getSegmentConfiguration "$segment_name")
 
     # Exit if no implementation could been found.
-    if [[ -z "$implementation" ]] ; then
+    if [[ -z "$implementationInfo" ]] ; then
       echo "Could not load segment: $segment_name"
       exit 1
     fi
+
+    # Split the information into their parameters.
+    IFS=':' read -ra implementationParam <<< "$implementationInfo"
+    IFS=':' read -ra configurationParam <<< "$configurationInfo"
+    segment_name=${implementationParam[0]}
+    implementation=${implementationParam[1]}
+    configuration=${configurationParam[1]}
 
     # Get the back- and foreground colors for this segments.
     local current_segment_background=$(getSegmentBackground $1 $i)

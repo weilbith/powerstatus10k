@@ -55,6 +55,7 @@ function getSegmentColor () {
 
   # Get static values, relevant for the color definition.
   eval "local segment_name=\${SEGMENT_LIST_${orientation}[${2}]^^}" # Remark the upper case in the end.
+  segment_name=${segment_name##*POWERSTATUS10K_} # Cut of a possible leading prefix by a repository.
   local color_list_length=${#SEGMENT_BACKGROUND_LIST[@]} # Background list is used as indicator.
 
   # Try to get a costumized color for segment.
