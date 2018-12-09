@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2002
 #
 # Based on the given arguments this script designs the format string for the bar.
 # This script is aware of the position of the segment.
@@ -16,13 +17,6 @@
 #   $9  - segment confiuration path (relative)
 #
 
-# Store the source and configuration directory, cause it is used several times.
-BASE_DIR="$(dirname $0)"
-CONFIG_DIR=$BASE_DIR/config
-
-# Script "Imports"
-SCRIPT_SEPARATOR_BUILDER="$(dirname $0)/SeparatorBuilder.sh"
-
 # Save some arguments globally.
 NAME=$1
 ORIENTATION=$2
@@ -31,20 +25,22 @@ INDEX=$3
 
 # Sourcing
 # Source the default update interval and FIFO name from the configurations.
-source <(cat $CONFIG_DIR/default.conf | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION")
+source <(cat "$POWERSTATUS10K_FILE_CONFIG_GLOBAL" | grep -E "^DEFAULT_UPDATE_INTERVAL|^FIFO|^ABBREVIATION")
 
 # Source the implementation of this segment.
-source $8
+source "$8"
 
 # Source the segments own default configuration.
 if [[ ! -z "$9" ]] ; then
-  source $9
+  source "$9"
 fi
 
 # Source the custom configuration for this segment.
-source <(cat $CONFIG_DIR/custom.conf | grep -i -E "^$1|^COLOR|^ABBREVIATION")
+[[ -f "$POWERSTATUS10K_FILE_CONFIG_USER" ]] && \
+  source <(cat "$POWERSTATUS10K_FILE_CONFIG_USER" | grep -i -E "^$NAME|^COLOR|^ABBREVIATION")
 
 # Source the abbreviation utils.
+declare abbreviationAvailable
 eval "abbreviationAvailable=\$${NAME^^}_ABBREVIATION_AVAILABLE"
 
 # Check if this segment has abbreviations available.
@@ -59,12 +55,12 @@ if [[ "$abbreviationAvailable" = 'true' ]] ; then
 
   # Source the abbreviation utilities for this segment.
   if [[ "$abbreviationEnabled" = 'true' ]] ; then
-    source $BASE_DIR/AbbreviationUtils.sh
+    source "$POWERSTATUS10K_COMPONENT_UTILS_ABBREVIATION"
 
   # Provide a dummy function, so the segment doesn't fail on try to abbreviate.
   else
     function abbreviate {
-      echo "$1"
+      echo "$NAME"
     }
   fi
 fi
@@ -72,8 +68,8 @@ fi
 
 
 # Define static variables in use to update the segment.
-LEFT_SEPARATOR_FORMAT_STRING="$($SCRIPT_SEPARATOR_BUILDER 'l' $2 $3 $4 $6 $7)"
-RIGHT_SEPARATOR_FORMAT_STRING="$($SCRIPT_SEPARATOR_BUILDER 'r' $2 $3 $4 $6 $7)"
+LEFT_SEPARATOR_FORMAT_STRING="$("$POWERSTATUS10K_COMPONENT_SEPARATOR_BUILDER" 'l' "$2" "$3" "$4" "$6" "$7")"
+RIGHT_SEPARATOR_FORMAT_STRING="$("$POWERSTATUS10K_COMPONENT_SEPARATOR_BUILDER" 'r' "$2" "$3" "$4" "$6" "$7")"
 STATE_COLOR_BEFORE="%{B${4} F${5}}"
 COLOR_CLEAR="%{F- B-}"
 
@@ -92,7 +88,7 @@ function buildAndForward {
   formatString="${formatString}${LEFT_SEPARATOR_FORMAT_STRING}${STATE_COLOR_BEFORE} ${1} ${RIGHT_SEPARATOR_FORMAT_STRING}${COLOR_CLEAR}"
 
   # Pass the format string to the FIFO. 
-  printf "%s\n" "${formatString}" > "${FIFO}" &
+  printf "%s\\n" "${formatString}" > "${POWERSTATUS10K_FILE_FIFO_MAIN}" &
 }
 
 # Function that will handle a subscribing segments process.
@@ -101,7 +97,7 @@ function buildAndForward {
 #
 function handleSubscribtionSegment {
   # Open a new FIFO for this segment.
-  segmentFifo="$FIFO_SEGMENT$NAME"
+  segmentFifo="${POWERSTATUS10K_DIR_FIFOS}/${NAME}"
   rm -f "${segmentFifo}" # Make sure to delete a possible old FIFO.
   mkfifo "${segmentFifo}" # Create the FIFO.
 
@@ -131,8 +127,9 @@ function handleSubscribtionSegment {
 # Only cause an update of the segments content if the state has changed.
 #
 function handleCycleSegment {
-  # Define the update interval by try to get a custom defined one or use defaul.
-  eval "custom_update_interval=\$${1^^}_UPDATE_INTERVAL"
+  # Define the update interval by try to get a custom defined one or use default.
+  local custom_update_interval
+  eval "custom_update_interval=\$${NAME^^}_UPDATE_INTERVAL"
 
   if [[ ${custom_update_interval} -gt 0 ]] ; then
     # Use custom interval.

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090 
 
 # Utility script to construct a format string with a segment separator.
 # Segment separators are differed between left and right ones.
@@ -15,13 +16,10 @@
 #   $6 - Background color of the next segment
 #
 
-# Store the source and configuration directory, cause it is used several times.
-BASE_DIR="$(dirname $0)"
-CONFIG_DIR=$BASE_DIR/config
-
 # Load the default and user configurations.
-source $CONFIG_DIR/default.conf # Default values for all necessary variables.
-source $CONFIG_DIR/custom.conf # Load after default values to be able to overwrite them.
+source "$POWERSTATUS10K_FILE_CONFIG_GLOBAL" # Default values for all necessary variables.
+[[ -f "$POWERSTATUS10K_FILE_CONFIG_USER" ]] && \
+  source "$POWERSTATUS10K_FILE_CONFIG_USER" # Load after default values to be able to overwrite them (only if exist).
 
 
 # Build the format string for a left separator of a segment.
@@ -123,15 +121,15 @@ if [[ "$2" = 'c' ]] ; then
   # Center segments are divided into left, center and right segments, which defines the separator.
   # In case of two middle segments (by a even number of center segments), between both are no separator. 
   centerMiddleIndex=$((${#SEGMENT_LIST_CENTER[@]} / 2)) # Is rounded down for odd number of segments.
-  centerDistance=$(($centerMiddleIndex - $3)) # The distance of the segment index to the middle segment.
+  centerDistance=$((centerMiddleIndex - $3)) # The distance of the segment index to the middle segment.
 fi
 
 
 # Differ between the request of a left or right separator by the first argument.
 # TODO: Maybe left and right must switch the last arguments as color.
 if [[ "$1" = 'l' ]] ; then
-  echo $(getLeftSeparator $2 $3 $4 $5)
+  getLeftSeparator "$2" "$3" "$4" "$5"
   
 elif [[ "$1" = 'r' ]] ; then
-  echo $(getRightSeparator $2 $3 $4 $6)
+  getRightSeparator "$2" "$3" "$4" "$6"
 fi

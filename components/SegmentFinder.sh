@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Define the base folders, where segment implementations are placed in.
-SEGMENT_FOLDER_DEFAULT="$(dirname $0)/segments/default"
-SEGMENT_FOLDER_CUSTOM="$(dirname $0)/segments/custom"
-
 # Constants
 IMPLEMENTATION="implementation"
 CONFIGURATION="configuration"
@@ -19,7 +15,7 @@ CONFIGURATION="configuration"
 #   (empty if none could been found)
 #
 function getSegmentImplementation {
-  echo $(getSegmentPart $1 $IMPLEMENTATION)
+  getSegmentPart "$1" "$IMPLEMENTATION"
 }
 
 # Get the configuration of a segment.
@@ -32,7 +28,7 @@ function getSegmentImplementation {
 #   (empty if none could been found)
 #
 function getSegmentConfiguration {
-  echo $(getSegmentPart $1 $CONFIGURATION)
+  getSegmentPart "$1" "$CONFIGURATION"
 }
 
 # Search for a part of a segment, defined by its name.
@@ -58,14 +54,16 @@ function getSegmentPart {
     name_pure=${name##*powerstatus10k_} # Cut of a possible leading prefix.
 
     # Get the repository if it does not exist yet.
-    if [[ ! -d "${SEGMENT_FOLDER_CUSTOM}/${name}" ]] ; then
+    if [[ ! -d "$POWERSTATUS10K_DIR_SEGMENTS_USER" ]] || \
+      [[ ! -d "${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}" ]] ; then
+      mkdir -p "$POWERSTATUS10K_DIR_SEGMENTS_USER"  
       url="https://github.com/${1}.git"
-      git clone --depth 1 $url $SEGMENT_FOLDER_CUSTOM/${name}
+      git clone --depth 1 "$url" "${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}"
     fi
 
     # Define the possible files for the requested type.
-    file="${SEGMENT_FOLDER_CUSTOM}/${name}/${name}.${extension}"
-    file_pure="${SEGMENT_FOLDER_CUSTOM}/${name}/${name_pure}.${extension}"
+    file="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}/${name}.${extension}"
+    file_pure="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}/${name_pure}.${extension}"
 
     # Check if the file exist to return it.
     # Else the response will leave empty.
@@ -74,20 +72,21 @@ function getSegmentPart {
 
   # Segment as pure file or sub-directory.
   else
+    echo "${POWERSTATUS10K_DIR_SEGMENTS_GLOBAL}" > test.log
     # Pure file in the default segment folder.
-    file="${SEGMENT_FOLDER_DEFAULT}/${1}.${extension}"
+    file="${POWERSTATUS10K_DIR_SEGMENTS_GLOBAL}/${1}.${extension}"
     [[ -f "$file" ]] && echo "${1}:${file}" && return
 
     # Segment in a sub-directory of the default folder.
-    file="${SEGMENT_FOLDER_DEFAULT}/${1}/${1}.${extension}"
+    file="${POWERSTATUS10K_DIR_SEGMENTS_GLOBAL}/${1}/${1}.${extension}"
     [[ -f "$file" ]] && echo "${1}:${file}" && return
 
     # Pure file in the custom segment folder.
-    file="${SEGMENT_FOLDER_CUSTOM}/${1}.${extension}"
+    file="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${1}.${extension}"
     [[ -f "$file" ]] && echo "${1}:${file}" && return
 
     # Segment in a sub-directory of the custom folder.
-    file="${SEGMENT_FOLDER_CUSTOM}/${1}/${1}.${extension}"
+    file="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${1}/${1}.${extension}"
     [[ -f "$file" ]] && echo "${1}:${file}" && return
   fi
 }
