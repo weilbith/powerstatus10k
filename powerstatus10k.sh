@@ -188,10 +188,11 @@ function initSegmentSection {
 # Pass the concatenation of all segments format strings to the standard output.
 #
 function reading {
+  #${#SEGMENT_LIST_LEFT[@]}
   # Arrays which holds the current format string for each orientation segments.
-  declare -A format_string_list_left=()
-  declare -A format_string_list_left=()
-  declare -A format_string_list_right=()
+  declare -a format_string_list_left=( $(for (( i=1; i<=${#SEGMENT_LIST_LEFT[@]}; i++ )); do echo ""; done ) )
+  declare -a format_string_list_center=( $(for (( i=1; i<=${#SEGMENT_LIST_CENTER[@]}; i++ )); do echo ""; done ) )
+  declare -a format_string_list_right=( $(for (( i=1; i<=${#SEGMENT_LIST_RIGHT[@]}; i++ )); do echo ""; done ) )
 
   # Define local variables.
   local orientation # Decide in which list the segment belong to.
@@ -213,10 +214,10 @@ function reading {
       line="${lines[i]}"
 
       # Parse the first and second character as the orientation and the index of the segment.
-      index=${line:0:1}
+      index=$((${line:0:1} + 1)) # Input counts from zero, but associative array from one.
       orientation=${line:1:1}
 
-      # Update the format string in the reponsive list.
+      # Update the format string in the responsive list.
       [[ "$orientation" = 'l' ]] && format_string_list_left[$index]="${line:2}"
       [[ "$orientation" = 'c' ]] && format_string_list_center[$index]="${line:2}"
       [[ "$orientation" = 'r' ]] && format_string_list_right[$index]="${line:2}"
