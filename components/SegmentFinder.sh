@@ -52,14 +52,21 @@ function getSegmentPart {
   if [[ "$1" = *'/'* ]] ; then
     name=${1##*/} # The folder name and is the same as the file name.
     name_pure=${name##*powerstatus10k_} # Cut of a possible leading prefix.
+    directory="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}"
 
     # Get the repository if it does not exist yet.
     if [[ ! -d "$POWERSTATUS10K_DIR_SEGMENTS_USER" ]] || \
       [[ ! -d "${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}" ]] ; then
       mkdir -p "$POWERSTATUS10K_DIR_SEGMENTS_USER"  
       url="https://github.com/${1}.git"
-      git clone --depth 1 "$url" "${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}"
+      git clone --depth 1 "$url" "$directory" &> /dev/null
+    
+    # Update the existing repository.
+    else
+      git -C "$directory" pull --force &> /dev/null
     fi
+
+    
 
     # Define the possible files for the requested type.
     file="${POWERSTATUS10K_DIR_SEGMENTS_USER}/${name}/${name}.${extension}"
