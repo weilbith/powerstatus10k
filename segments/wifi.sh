@@ -9,17 +9,15 @@
 #
 function getState_wifi {
   icon="${WIFI_ICON_CONNECTED}" # Use the connected icon per default.
-  essid=$(iwconfig ${WIFI_INTERFACE_NAME} | grep -o -P '(?<=ESSID:).*') 
+  ssid=$(iw dev | grep -A5 "$WIFI_INTERFACE_NAME" | grep "ssid" | awk -F ' ' '{print $2}') 
 
   # Check if WIFI is disconnected.
-  if [[ "$essid" = *off/any* ]] ; then
+  if [[ -z "$ssid" ]] ; then
     icon="${WIFI_ICON_DISCONNECTED}"
-    essid="off"
+    ssid="off"
   fi
 
-  # Remove quotation marks around the ESSID.
-  essid=$(echo "${essid}" | sed 's/"//g')
-  essidAbbr=$(abbreviate "$essid" "wifi")
+  essidAbbr=$(abbreviate "$ssid" "wifi")
 
   # Build the state string.
   STATE="${icon} ${essidAbbr}"
