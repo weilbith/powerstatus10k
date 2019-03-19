@@ -33,10 +33,12 @@ POWERSTATUS10K_DIR_SEGMENTS_USER="$XDG_CACHE_HOME/$NAME/segments"
 export POWERSTATUS10K_FILE_CONFIG_GLOBAL
 export POWERSTATUS10K_FILE_CONFIG_USER
 export POWERSTATUS10K_FILE_FIFO_MAIN
+export POWERSTATUS10K_FILE_PID
 
 POWERSTATUS10K_FILE_CONFIG_GLOBAL="$POWERSTATUS10K_DIR_CONFIG_GLOBAL/$NAME.conf"
 POWERSTATUS10K_FILE_CONFIG_USER="$POWERSTATUS10K_DIR_CONFIG_USER/$NAME.conf"
 POWERSTATUS10K_FILE_FIFO_MAIN="$POWERSTATUS10K_DIR_FIFOS/main"
+POWERSTATUS10K_FILE_PID="$POWERSTATUS10K_DIR_RUNTIME/pid"
 
 
 # Component names
@@ -51,9 +53,6 @@ POWERSTATUS10K_COMPONENT_UTILS_ABBREVIATION="$POWERSTATUS10K_DIR_COMPONENTS/Abbr
 POWERSTATUS10K_COMPONENT_SEGMENT_FINDER="$POWERSTATUS10K_DIR_COMPONENTS/SegmentFinder.sh"
 POWERSTATUS10K_COMPONENT_SEGMENT_HANDLER="$POWERSTATUS10K_DIR_COMPONENTS/SegmentHandler.sh"
 POWERSTATUS10K_COMPONENT_SEPARATOR_BUILDER="$POWERSTATUS10K_DIR_COMPONENTS/SeparatorBuilder.sh"
-
-# Create essential directories to make sure no component stuck on that.
-mkdir -p "$POWERSTATUS10K_DIR_FIFOS"
 
 # ---
 
@@ -72,22 +71,10 @@ source "$POWERSTATUS10K_COMPONENT_SEGMENT_FINDER" # Dynamically load segments wh
 [[ "$BOTTOM" = true ]] && BAR_BOTTOM_ARG="-b"
 [[ "$FORCE_DOCKING" = true ]] && BAR_FORCE_DOCKING="-d"
 
-# ---
-
-
-# Close procedure setup
-# List of all process identifiers of the subscripts which handle the segments.
-PID_LIST=""
 
 # Execute cleanup function at script exit.
 trap cleanup EXIT
 
-# ---
-
-
-# Prepare the main FIFO.
-rm -f "$POWERSTATUS10K_FILE_FIFO_MAIN" # Make sure to delete a possible old FIFO.
-mkfifo "$POWERSTATUS10K_FILE_FIFO_MAIN" # Create the FIFO.
 
 # ---
 
@@ -95,13 +82,62 @@ mkfifo "$POWERSTATUS10K_FILE_FIFO_MAIN" # Create the FIFO.
 # Functions
 
 # Cleanup the script when it gets exited.
-# This will kill all started child processes.
+# This will kill the whole subtree of processes.
+# Since some sub-processes are blocking and will not terminate by killing just
+# the group, this must be done manually through the tree.
 #
 function cleanup {
-  # Iterate over all process identifiers to kill them.
-  for pid in $PID_LIST ; do
-    kill $pid
+  own_pid=$$
+  group_pid="$(ps -o sid= -p "$own_pid")"
+  pid_tree_list="$(ps --no-header --forest -o pid -g "${group_pid// /}")"
+
+  rm -f "$POWERSTATUS10K_FILE_PID"
+
+  while IFS=$'\n' read -r pid || [ -n "$line" ]; do
+    [[ "$pid" == "$own_pid" ]] && continue
+    kill "${pid// /}" &> /dev/null  # We don't care about the order so some could fail.
+  done <<< "$pid_tree_list"
+}
+
+
+# Checks if an instance is already running and terminating it if so.
+# Wait until being sure the old instance is not active anymore.
+#
+function terminate_old_instance {
+  [[ ! -f "$POWERSTATUS10K_FILE_PID" ]] && return
+
+  pid="$(cat "$POWERSTATUS10K_FILE_PID")"
+  kill "$pid" &> /dev/null
+
+  # Wait until process has finally terminated.
+  # This is necessary to make sure to not access the same resources.
+  echo -n "Wait until last instance has been terminated."
+
+  while [[ -n "$(ps --no-header "$pid")" ]]; do
+    printf '.'
+    sleep 0.5
   done
+  
+  printf ' done\n'
+}
+
+
+# Initial setup to secure a successful run.
+# Making sure all necessary directories where to place date are available.
+# Also possibly old instances are cleared.
+#
+function setup {
+  # Remove possibly running instance.
+  terminate_old_instance
+  echo $$ > "$POWERSTATUS10K_FILE_PID"
+
+  # Create essential directories to make sure no component stuck on that.
+  mkdir -p "$POWERSTATUS10K_DIR_FIFOS"
+  mkdir -p "$POWERSTATUS10K_DIR_RUNTIME"
+
+  # Prepare the main FIFO.
+  rm -f "$POWERSTATUS10K_FILE_FIFO_MAIN" # Make sure to delete a possible old FIFO.
+  mkfifo "$POWERSTATUS10K_FILE_FIFO_MAIN" # Create the FIFO.
 }
 
 
@@ -175,9 +211,6 @@ function initSegmentSection {
       "$current_segment_background" "$current_segment_foreground" "$previous_segment_background" "$next_segment_background" \
       "$implementation" "$configuration" \
       &
-
-    # Store the PID to be able to kill it later on.
-    PID_LIST="$PID_LIST $!"
   done
 }
 
@@ -190,9 +223,9 @@ function initSegmentSection {
 function reading {
   #${#SEGMENT_LIST_LEFT[@]}
   # Arrays which holds the current format string for each orientation segments.
-  declare -a format_string_list_left=( $(for (( i=1; i<=${#SEGMENT_LIST_LEFT[@]}; i++ )); do echo ""; done ) )
-  declare -a format_string_list_center=( $(for (( i=1; i<=${#SEGMENT_LIST_CENTER[@]}; i++ )); do echo ""; done ) )
-  declare -a format_string_list_right=( $(for (( i=1; i<=${#SEGMENT_LIST_RIGHT[@]}; i++ )); do echo ""; done ) )
+  declare -a format_string_list_left=( "$(for (( i=1; i<=${#SEGMENT_LIST_LEFT[@]}; i++ )); do echo ""; done )" )
+  declare -a format_string_list_center=( "$(for (( i=1; i<=${#SEGMENT_LIST_CENTER[@]}; i++ )); do echo ""; done )" )
+  declare -a format_string_list_right=( "$(for (( i=1; i<=${#SEGMENT_LIST_RIGHT[@]}; i++ )); do echo ""; done )" )
 
   # Define local variables.
   local orientation # Decide in which list the segment belong to.
@@ -242,6 +275,7 @@ function reading {
 
 
 # Getting started
+setup
 initSegments # Start all background processes, handling the segments.
 reading |  # Run process which read from the fifo and pass the whole format string to the bar.
 lemonbar \
@@ -251,5 +285,4 @@ lemonbar \
   "$OPTIONAL_BAR_ARGUMENTS" \
   & # Start lemonbar in background and read from the standard input.
 
-PID_LIST="$PID_LIST $!" # Add the lemonbar process identifier to the list as well.
 wait # Wait here and do not end. 
