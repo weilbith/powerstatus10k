@@ -42,12 +42,14 @@ POWERSTATUS10K_FILE_PID="$POWERSTATUS10K_DIR_RUNTIME/pid"
 
 
 # Component names
+export POWERSTATUS10K_COMPONENT_READER
 export POWERSTATUS10K_COMPONENT_UTILS_COLOR
 export POWERSTATUS10K_COMPONENT_UTILS_ABBREVIATION
 export POWERSTATUS10K_COMPONENT_SEGMENT_FINDER
 export POWERSTATUS10K_COMPONENT_SEGMENT_HANDLER
 export POWERSTATUS10K_COMPONENT_SEPARATOR_BUILDER
 
+POWERSTATUS10K_COMPONENT_READER="$POWERSTATUS10K_DIR_COMPONENTS/Reader.sh"
 POWERSTATUS10K_COMPONENT_UTILS_COLOR="$POWERSTATUS10K_DIR_COMPONENTS/ColorUtils.sh"
 POWERSTATUS10K_COMPONENT_UTILS_ABBREVIATION="$POWERSTATUS10K_DIR_COMPONENTS/AbbreviationUtils.sh"
 POWERSTATUS10K_COMPONENT_SEGMENT_FINDER="$POWERSTATUS10K_DIR_COMPONENTS/SegmentFinder.sh"
@@ -151,7 +153,8 @@ function initSegments {
 
 
 # Initialize all segments for a specific section.
-# By this it spawns a background process per segment which will update its content.
+# A section consists of a list of segments which have the same orientation.
+# It spawns a background process per segment which will update its content.
 # Therefore it compose a bunch of values this process has to be aware of.
 #
 # Arguments:
@@ -215,74 +218,24 @@ function initSegmentSection {
 }
 
 
-# Function which run in background and read from the FIFO.
-# Hold an array where each entry is the format string of one segment.
-# An FIFO entry is suffixed by the segment index, which is equal to the array index.
-# Pass the concatenation of all segments format strings to the standard output.
-#
-function reading {
-  #${#SEGMENT_LIST_LEFT[@]}
-  # Arrays which holds the current format string for each orientation segments.
-  declare -a format_string_list_left=( "$(for (( i=1; i<=${#SEGMENT_LIST_LEFT[@]}; i++ )); do echo ""; done )" )
-  declare -a format_string_list_center=( "$(for (( i=1; i<=${#SEGMENT_LIST_CENTER[@]}; i++ )); do echo ""; done )" )
-  declare -a format_string_list_right=( "$(for (( i=1; i<=${#SEGMENT_LIST_RIGHT[@]}; i++ )); do echo ""; done )" )
-
-  # Define local variables.
-  local orientation # Decide in which list the segment belong to.
-  local index # Temporally store the index of the to update segment.
-  local format_string_left # Hold the concatenation of all left segments.
-  local format_string_center # Hold the concatenation of all center segments.
-  local format_string_right # Hold the concatenation of all right segments.
-  local format_string # Hold the concatenation of all format strings.
-
-  # Keep open endless loop as long as the process is running.
-  while true ; do
-    # Wait until FIFO has content.
-    # Be aware that this does read the whole FIFO and does not to be split.
-    state="$(cat "$POWERSTATUS10K_FILE_FIFO_MAIN")"
-    readarray -t lines <<<"$state"
-
-    # Parse each entry of the read FIFO content.
-    for (( i=0; i<${#lines[@]}; i++ )) ; do
-      line="${lines[i]}"
-
-      # Parse the first and second character as the orientation and the index of the segment.
-      index=$((${line:0:1} + 1)) # Input counts from zero, but associative array from one.
-      orientation=${line:1:1}
-
-      # Update the format string in the responsive list.
-      [[ "$orientation" = 'l' ]] && format_string_list_left[$index]="${line:2}"
-      [[ "$orientation" = 'c' ]] && format_string_list_center[$index]="${line:2}"
-      [[ "$orientation" = 'r' ]] && format_string_list_right[$index]="${line:2}"
-
-      # Pass the current format string list to the bar.
-      format_string_left=$(printf %s "${format_string_list_left[@]}" $'\n')
-      format_string_center=$(printf %s "${format_string_list_center[@]}" $'\n')
-      format_string_right=$(printf %s "${format_string_list_right[@]}" $'\n')
-      format_string="%{l}${format_string_left}%{c}${format_string_center}%{r}${format_string_right}"
-
-      # Forward this to the bar.
-      echo "${format_string}"
-
-      # Sleep minimum of time, after which a new update is possible.
-      # In case that the FIFO directly contains a new update, it would be ignored by the lemonbar,
-      # if no short delay is inserted
-      sleep 0.03s
-    done
-
-  done
-}
-
-
 # Getting started
 setup
-initSegments # Start all background processes, handling the segments.
-reading |  # Run process which read from the fifo and pass the whole format string to the bar.
-lemonbar \
-  -p "$BAR_FORCE_DOCKING" "$BAR_BOTTOM_ARG" -g "x$HEIGHT" \
-  -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" \
-  -B "$DEFAULT_BACKGROUND" -F "$DEFAULT_FOREGROUND" \
-  "$OPTIONAL_BAR_ARGUMENTS" \
-  & # Start lemonbar in background and read from the standard input.
+initSegments
 
-wait # Wait here and do not end. 
+$POWERSTATUS10K_COMPONENT_READER \
+  ${#SEGMENT_LIST_LEFT[@]} \
+  ${#SEGMENT_LIST_CENTER[@]} \
+  ${#SEGMENT_LIST_RIGHT[@]} \
+  | \
+lemonbar \
+  -p "$BAR_FORCE_DOCKING" \
+  "$BAR_BOTTOM_ARG" \
+  -g "x$HEIGHT" \
+  -f "$FONT_DEFAULT:size=$FONT_SIZE_DEFAULT" \
+  -f "$FONT_SEPARATORS:size=$FONT_SIZE_SEPARATORS" \
+  -B "$DEFAULT_BACKGROUND" \
+  -F "$DEFAULT_FOREGROUND" \
+  "$OPTIONAL_BAR_ARGUMENTS" \
+  &
+
+wait
